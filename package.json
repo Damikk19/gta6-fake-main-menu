@@ -1,7 +1,7 @@
 {
   "name": "vi-main-menu-mockup",
   "productName": "Grand Theft Auto VI",
-  "version": "1.0.0",
+  "version": "1.1.0",
   "description": "A fan-made, pixel-matched mockup of the Grand Theft Auto VI main menu. Ships with no game artwork.",
   "license": "MIT",
   "main": "src/main.js",
@@ -9,9 +9,9 @@
     "start": "electron .",
     "icons": "electron tools",
     "predist:mac": "npm run icons",
-    "dist:mac": "electron-packager . \"Grand Theft Auto VI\" --platform=darwin --arch=arm64 --icon=assets/icon.icns --app-bundle-id=io.github.damikk19.vi-menu-mockup --app-version=1.0.0 --out=dist --overwrite --ignore=\"^/(\\.work|dist|tools|docs)\" --ignore=\"^/assets/img/(new-game|continue|progress|settings|collectibles|vi-logo)\\.\" --ignore=\"^/assets/icon\\.(ico|icns)$\"",
+    "dist:mac": "electron-packager . \"Grand Theft Auto VI\" --platform=darwin --arch=arm64 --icon=assets/icon.icns --app-bundle-id=io.github.damikk19.vi-menu-mockup --out=dist --overwrite --ignore=\"^/(\\.work|dist|tools|docs)\" --ignore=\"^/assets/img/(new-game|continue|progress|settings|collectibles|vi-logo)\\.\" --ignore=\"^/assets/icon\\.(ico|icns)$\"",
     "predist:win": "npm run icons",
-    "dist:win": "electron-packager . \"Grand Theft Auto VI\" --platform=win32 --arch=x64 --icon=assets/icon.ico --app-version=1.0.0 --out=dist --overwrite --ignore=\"^/(\\.work|dist|tools|docs)\" --ignore=\"^/assets/img/(new-game|continue|progress|settings|collectibles|vi-logo)\\.\" --ignore=\"^/assets/icon\\.(ico|icns)$\"",
+    "dist:win": "electron-packager . \"Grand Theft Auto VI\" --platform=win32 --arch=x64 --icon=assets/icon.ico --out=dist --overwrite --ignore=\"^/(\\.work|dist|tools|docs)\" --ignore=\"^/assets/img/(new-game|continue|progress|settings|collectibles|vi-logo)\\.\" --ignore=\"^/assets/icon\\.(ico|icns)$\"",
     "dist": "npm run dist:mac && npm run dist:win"
   },
   "devDependencies": {
