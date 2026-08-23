@@ -1,0 +1,300 @@
+/* ---------- fonts ----------
+   Matched against the reference frame by ink-extent measurement:
+   Figtree 700 for UI text (1.5% mean width error), Oswald 600 for the
+   condensed cream labels (3.9%).                                          */
+@font-face { font-family:'GTA UI'; src:url('../assets/fonts/figtree-400.woff2') format('woff2'); font-weight:400; font-display:block }
+@font-face { font-family:'GTA UI'; src:url('../assets/fonts/figtree-500.woff2') format('woff2'); font-weight:500; font-display:block }
+@font-face { font-family:'GTA UI'; src:url('../assets/fonts/figtree-600.woff2') format('woff2'); font-weight:600; font-display:block }
+@font-face { font-family:'GTA UI'; src:url('../assets/fonts/figtree-700.woff2') format('woff2'); font-weight:700; font-display:block }
+@font-face { font-family:'GTA Cond'; src:url('../assets/fonts/oswald-600.woff2') format('woff2'); font-weight:600; font-display:block }
+
+/* ---------- shell ---------- */
+* { margin:0; padding:0; box-sizing:border-box }
+html, body {
+  height:100%; background:#000; overflow:hidden;
+  cursor:none; user-select:none; -webkit-user-select:none;
+}
+#viewport { position:fixed; inset:0; overflow:hidden; background:#000 }
+
+/* Authored in a fixed 2000x1125 space and scaled to fit, so the measured
+   pixel coordinates hold at any window size. */
+#stage {
+  position:absolute; left:50%; top:50%; width:2000px; height:1125px;
+  transform-origin:0 0; overflow:hidden; background:#111018;
+  font-family:'GTA UI', system-ui, sans-serif;
+  -webkit-font-smoothing:antialiased;
+}
+
+/* ---------- background ---------- */
+.bg { position:absolute; inset:0 }
+.bg::before {
+  content:''; position:absolute; inset:0;
+  background:
+    radial-gradient(700px 760px at 2010px -20px,   rgba(255,196,123,.249), rgba(255,196,123,0) 74%),
+    radial-gradient(620px 1000px at 2090px 520px,  rgba(233,191,255,.105), rgba(233,191,255,0) 72%),
+    radial-gradient(760px 560px at 2030px 1190px,  rgba(255,227,173,.096), rgba(255,227,173,0) 70%),
+    radial-gradient(1700px 620px at 1250px -220px, rgba(255,110,249,.158), rgba(255,110,249,0) 78%),
+    radial-gradient(900px 420px at 60px -40px,     rgba(255,180,117,.057), rgba(255,180,117,0) 75%),
+    radial-gradient(1100px 420px at 700px -90px,   rgba(120,170,120,.050), rgba(120,170,120,0) 76%);
+}
+
+/* ---------- screens ---------- */
+.screen {
+  position:absolute; inset:0;
+  opacity:0; visibility:hidden; transition:opacity .2s ease, visibility .2s;
+}
+.screen.is-active { opacity:1; visibility:visible }
+
+.page-title {
+  position:absolute; left:113px; top:141px;
+  font-family:'GTA Cond', sans-serif; font-weight:600; font-size:56px; line-height:1;
+  color:#FCF7D2; transform:scaleX(.91); transform-origin:left top;
+}
+
+/* ---------- tabs ---------- */
+.tabs { position:absolute; left:113px; top:132px; display:flex; gap:12px }
+.tab {
+  position:relative; height:69px; padding:0 42px; border:0; border-radius:999px;
+  background:transparent; color:#fff; font:700 32px/69px 'GTA UI', sans-serif;
+  white-space:nowrap; cursor:inherit;
+  transition:background-color .16s ease, color .16s ease;
+}
+.tab.is-active { background:#fff; color:#0d0d12 }
+.tab .bumper {
+  position:absolute; left:50%; top:-49px; transform:translateX(-50%);
+  width:34px; height:24px; border-radius:6px 6px 14px 14px;
+  background:#474548; color:#1e1b20;
+  font:700 15px/24px 'GTA UI', sans-serif; text-align:center;
+}
+
+/* ---------- logo (positioned by its transparent crop box) ---------- */
+.vi-logo { position:absolute; left:1745px; top:103px; width:164px; height:126px }
+.vi-logo.is-missing { display:none }
+/* Shown only when no logo file is present, so the build carries no mark of its own. */
+.vi-fallback {
+  position:absolute; left:1754px; top:111px; width:147px; height:109px; display:none;
+  font-family:'GTA Cond', sans-serif; font-weight:600; font-size:104px; line-height:109px;
+  color:#F4F1E4; text-align:center; letter-spacing:2px;
+}
+.vi-fallback.is-shown { display:block }
+
+/* ---------- tiles ---------- */
+.grid { position:absolute; inset:0 }
+.tile {
+  position:absolute; padding:0; border:0; overflow:hidden;
+  cursor:inherit; border-radius:3px; transition:box-shadow .13s ease;
+  background:linear-gradient(145deg, #221f31 0%, #14121d 55%, #0d0b14 100%);
+}
+.tile img.is-missing { display:none }
+.tile img {
+  position:absolute; inset:0; width:100%; height:100%;
+  object-fit:cover; object-position:var(--op, 50% 50%);
+  transform:scale(var(--zoom, 1)); transform-origin:var(--op, 50% 50%);
+}
+.tile .scrim {
+  position:absolute; inset:0;
+  background:linear-gradient(to top,
+    rgba(6,5,10,.78) 0px, rgba(6,5,10,.44) 44px,
+    rgba(6,5,10,.13) 100px, rgba(6,5,10,0) 170px);
+}
+.tile .label {
+  position:absolute; left:31px; bottom:31px;
+  font-family:'GTA Cond', sans-serif; font-weight:600; font-size:38.5px; line-height:1;
+  color:#FCF7D2; text-shadow:0 2px 12px rgba(0,0,0,.5);
+  transform:scaleX(.91); transform-origin:left bottom;
+}
+/* drawn as ::after so it paints above the tile image */
+.tile::after {
+  content:''; position:absolute; inset:0; pointer-events:none;
+  border:6px solid transparent; border-radius:3px;
+  transition:border-color .13s ease;
+}
+.tile.is-selected::after { border-color:#FFF9CC }
+
+/* ---------- bottom-left info ---------- */
+.info { position:absolute; inset:0; pointer-events:none }
+.info-kicker {
+  position:absolute; left:113px; top:965px;
+  font-family:'GTA Cond', sans-serif; font-weight:600; font-size:24.2px; line-height:1;
+  color:#FCF7D2; transform:scaleX(.91); transform-origin:left top;
+}
+.info-title {
+  position:absolute; left:113px; top:998px;
+  font:700 24px/1 'GTA UI', sans-serif; color:#fff;
+}
+.info-chip {
+  position:absolute; left:113px; top:1029px; height:34px; padding:0 7px;
+  border:1.5px solid rgba(233,233,240,.32); border-radius:7px;
+  font:700 14.8px/31px 'GTA UI', sans-serif; color:#fff; white-space:nowrap;
+}
+
+/* ---------- bottom-right hints ---------- */
+.hint-rule { position:absolute; left:1471px; top:976px; width:379px; height:2px; background:rgba(240,238,245,.20) }
+.hints {
+  position:absolute; left:1449px; top:1010px; height:29px;
+  display:flex; align-items:center; gap:21px;
+  font:700 22px/1 'GTA UI', sans-serif; color:#F8F7D5;
+}
+.hints .btn {
+  width:29px; height:29px; border-radius:50%; background:#F8F2D2;
+  display:grid; place-items:center; flex:none;
+}
+.hints .btn svg { width:18px; height:18px; display:block }
+
+/* ---------- motion ---------- */
+body.show-cursor { cursor:default }
+.tile.is-pressed { animation:press .22s ease }
+@keyframes press { 40% { transform:scale(.988) } 100% { transform:scale(1) } }
+.grid.tab-in .tile { animation:tabin .26s ease both }
+@keyframes tabin { from { opacity:0; transform:translateY(10px) } to { opacity:1; transform:none } }
+
+/* ================= settings ================= */
+.set-cats { position:absolute; left:113px; top:282px; width:380px }
+.set-cat {
+  display:block; width:100%; height:60px; padding:0 24px; border:0; border-radius:8px;
+  background:transparent; color:rgba(255,255,255,.55); cursor:inherit;
+  font:700 26px/60px 'GTA UI', sans-serif; text-align:left; white-space:nowrap;
+  transition:background-color .13s ease, color .13s ease;
+}
+.set-cat.is-here { color:#fff }
+.set-cat.is-active { background:#FCF7D2; color:#14121a }
+
+.set-rows { position:absolute; left:540px; top:282px; width:1368px }
+.set-row {
+  position:relative; display:flex; align-items:center; justify-content:space-between;
+  height:64px; padding:0 22px; border-radius:8px; background:transparent;
+  border:0; width:100%; cursor:inherit; color:#fff;
+  font:700 26px/1 'GTA UI', sans-serif;
+  transition:background-color .13s ease;
+}
+.set-row + .set-row::before {
+  content:''; position:absolute; left:22px; right:22px; top:0; height:1px;
+  background:rgba(255,255,255,.07);
+}
+.set-row.is-selected { background:rgba(252,247,210,.10) }
+.set-row.is-selected::before, .set-row.is-selected + .set-row::before { opacity:0 }
+.set-row .val { display:flex; align-items:center; gap:14px; color:#FCF7D2 }
+.set-row .arrow { opacity:0; font-size:22px; color:#FCF7D2; transition:opacity .13s ease }
+.set-row.is-selected .arrow { opacity:.85 }
+.set-row .valtext { min-width:150px; text-align:right }
+.set-row.is-selected .valtext { text-align:center; min-width:170px }
+
+.set-help { position:absolute; left:113px; top:962px; width:1200px }
+.set-help .h-name {
+  font-family:'GTA Cond', sans-serif; font-weight:600; font-size:24.2px; line-height:1;
+  color:#FCF7D2; transform:scaleX(.91); transform-origin:left top; display:block;
+}
+.set-help .h-desc {
+  margin-top:12px; font:500 23px/1.35 'GTA UI', sans-serif; color:rgba(255,255,255,.66);
+}
+
+/* ================= stats (progress / collectibles) ================= */
+.stats-head { position:absolute; left:113px; top:250px }
+.stats-big {
+  font-family:'GTA Cond', sans-serif; font-weight:600; font-size:104px; line-height:1;
+  color:#FCF7D2; transform:scaleX(.91); transform-origin:left top;
+}
+.stats-sub { margin-top:14px; font:700 26px/1 'GTA UI', sans-serif; color:rgba(255,255,255,.62) }
+
+.stats-body { position:absolute; left:113px; top:430px; width:1795px }
+.stat-row {
+  position:relative; display:flex; align-items:center; height:62px; padding:0 4px;
+  font:700 25px/1 'GTA UI', sans-serif; color:#fff;
+}
+.stat-row + .stat-row::before {
+  content:''; position:absolute; left:0; right:0; top:0; height:1px; background:rgba(255,255,255,.07);
+}
+.stat-row .s-name { flex:1 }
+.stat-row .s-count { width:190px; text-align:right; color:rgba(255,255,255,.72); font-size:23px }
+.stat-row .s-bar {
+  width:360px; height:6px; margin-left:34px; border-radius:3px;
+  background:rgba(255,255,255,.13); overflow:hidden; flex:none;
+}
+.stat-row .s-bar.is-blank { visibility:hidden }
+.stat-row .s-bar i { display:block; height:100%; background:#FCF7D2; border-radius:3px }
+
+/* ================= loading ================= */
+#screenLoading { background:#0a0910 }
+.load-art {
+  position:absolute; inset:0; width:100%; height:100%; object-fit:cover;
+  animation:kenburns 48s ease-out both;
+}
+@keyframes kenburns { from { transform:scale(1.02) } to { transform:scale(1.14) } }
+.load-scrim {
+  position:absolute; inset:0;
+  background:
+    linear-gradient(to top, rgba(6,5,10,.94) 0px, rgba(6,5,10,.66) 230px, rgba(6,5,10,.12) 430px, rgba(6,5,10,0) 620px),
+    linear-gradient(to bottom, rgba(6,5,10,.55) 0px, rgba(6,5,10,0) 320px);
+}
+.load-tip { position:absolute; left:113px; top:866px; max-width:1200px;
+  font:500 22px/1.4 'GTA UI', sans-serif; color:rgba(252,247,210,.60) }
+.load-tip b { color:#FCF7D2; font-weight:700; letter-spacing:.4px }
+.load-kicker {
+  position:absolute; left:113px; top:946px;
+  font-family:'GTA Cond', sans-serif; font-weight:600; font-size:28px; line-height:1;
+  color:#FCF7D2; transform:scaleX(.91); transform-origin:left top;
+}
+.load-title { position:absolute; left:113px; top:984px; font:700 27px/1 'GTA UI', sans-serif; color:#fff }
+.load-status { position:absolute; left:113px; top:1024px; font:500 21px/1 'GTA UI', sans-serif; color:rgba(255,255,255,.55) }
+.load-bar {
+  position:absolute; left:113px; top:1062px; width:520px; height:5px;
+  border-radius:3px; background:rgba(255,255,255,.16); overflow:hidden;
+}
+.load-bar i { display:block; height:100%; width:0%; background:#FCF7D2; border-radius:3px; transition:width .3s ease }
+.load-spin { position:absolute; left:1856px; top:1000px; width:44px; height:44px; animation:spin 1.15s linear infinite }
+.load-spin svg { width:44px; height:44px; display:block }
+@keyframes spin { to { transform:rotate(360deg) } }
+.load-pct {
+  position:absolute; left:1660px; top:1000px; width:170px; height:44px;
+  font:700 27px/44px 'GTA UI', sans-serif; color:#FCF7D2; text-align:right;
+}
+
+/* ================= confirmation dialog ================= */
+.modal-layer {
+  position:absolute; inset:0; display:grid; place-items:center; z-index:5;
+  background:rgba(6,5,10,.66); opacity:0; visibility:hidden;
+  transition:opacity .18s ease, visibility .18s;
+}
+.modal-layer.is-open { opacity:1; visibility:visible }
+.modal {
+  width:860px; background:#16141f; border-radius:12px; overflow:hidden;
+  border:1.5px solid rgba(252,247,210,.26); box-shadow:0 40px 90px rgba(0,0,0,.6);
+  transform:translateY(12px); transition:transform .18s ease;
+}
+.modal-layer.is-open .modal { transform:none }
+.modal-title { padding:20px 32px; background:rgba(252,247,210,.09) }
+.modal-title span {
+  display:inline-block;
+  font-family:'GTA Cond', sans-serif; font-weight:600; font-size:30px; line-height:1;
+  color:#FCF7D2; transform:scaleX(.91); transform-origin:left center;
+}
+.modal-body { padding:30px 32px 6px; font:500 24px/1.45 'GTA UI', sans-serif; color:rgba(255,255,255,.8) }
+.modal-actions { display:flex; gap:14px; padding:28px 32px 32px }
+.modal-btn {
+  height:56px; padding:0 34px; border-radius:999px; cursor:inherit;
+  background:transparent; color:#fff; border:1.5px solid rgba(255,255,255,.26);
+  font:700 24px/53px 'GTA UI', sans-serif;
+  transition:background-color .13s ease, color .13s ease, border-color .13s ease;
+}
+.modal-btn.is-selected { background:#fff; color:#14121a; border-color:#fff }
+
+/* hint bar hides on the loading screen */
+.hintbar { transition:opacity .2s ease }
+.hintbar.is-hidden { opacity:0 }
+
+/* ---------- empty-artwork state ---------- */
+.load-plate {
+  position:absolute; inset:0; z-index:-1;
+  background:linear-gradient(145deg, #221f31 0%, #14121d 55%, #0d0b14 100%);
+}
+.load-art.is-missing { display:none }
+
+.art-hint {
+  position:absolute; left:50%; top:44px; transform:translateX(-50%);
+  padding:0 26px; height:48px; border-radius:999px; cursor:pointer; z-index:6;
+  background:rgba(252,247,210,.13); border:1.5px solid rgba(252,247,210,.30);
+  color:#FCF7D2; font:600 21px/45px 'GTA UI', sans-serif; white-space:nowrap;
+  transition:background-color .15s ease;
+}
+.art-hint:hover { background:rgba(252,247,210,.22) }
+.art-hint[hidden] { display:none }

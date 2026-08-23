@@ -1,0 +1,115 @@
+<!doctype html><meta charset="utf-8"><body style="margin:0;background:#222"></body>
+<script>
+/* macOS Big Sur+ app icon grid: an 824x824 rounded square, corner radius 185.4,
+   centred in a 1024x1024 canvas. The 100px margin is where the shadow lives. */
+const S = 1024, BODY = 824, R = 185.4, OFF = (S - BODY) / 2
+let master = null
+
+function squircle (ctx, x, y, w, h, r) {
+  ctx.beginPath()
+  ctx.moveTo(x + r, y)
+  ctx.arcTo(x + w, y,     x + w, y + h, r)
+  ctx.arcTo(x + w, y + h, x,     y + h, r)
+  ctx.arcTo(x,     y + h, x,     y,     r)
+  ctx.arcTo(x,     y,     x + w, y,     r)
+  ctx.closePath()
+}
+
+function plate (ctx) {
+  ctx.save()
+  ctx.shadowColor = 'rgba(0,0,0,.42)'
+  ctx.shadowBlur = 44
+  ctx.shadowOffsetY = 18
+  ctx.fillStyle = '#000'
+  squircle(ctx, OFF, OFF, BODY, BODY, R)
+  ctx.fill()
+  ctx.restore()
+
+  ctx.save()
+  squircle(ctx, OFF, OFF, BODY, BODY, R)
+  ctx.clip()
+
+  ctx.fillStyle = '#12101c'
+  ctx.fillRect(OFF, OFF, BODY, BODY)
+
+  let g = ctx.createRadialGradient(OFF + BODY, OFF, 0, OFF + BODY, OFF, BODY * 0.95)
+  g.addColorStop(0, 'rgba(214,158,126,.55)')
+  g.addColorStop(0.55, 'rgba(150,96,120,.16)')
+  g.addColorStop(1, 'rgba(150,96,120,0)')
+  ctx.fillStyle = g
+  ctx.fillRect(OFF, OFF, BODY, BODY)
+
+  g = ctx.createRadialGradient(OFF, OFF + BODY, 0, OFF, OFF + BODY, BODY * 0.8)
+  g.addColorStop(0, 'rgba(104,86,168,.30)')
+  g.addColorStop(1, 'rgba(104,86,168,0)')
+  ctx.fillStyle = g
+  ctx.fillRect(OFF, OFF, BODY, BODY)
+}
+
+function gloss (ctx) {
+  const g = ctx.createLinearGradient(0, OFF, 0, OFF + BODY * 0.5)
+  g.addColorStop(0, 'rgba(255,255,255,.10)')
+  g.addColorStop(1, 'rgba(255,255,255,0)')
+  ctx.fillStyle = g
+  ctx.fillRect(OFF, OFF, BODY, BODY * 0.5)
+  ctx.restore()
+}
+
+function loadLogo () {
+  if (!new URLSearchParams(location.search).has('logo')) return Promise.resolve(null)
+  return new Promise(resolve => {
+    const img = new Image()
+    img.onload = () => resolve(img)
+    img.onerror = () => resolve(null)
+    img.src = '../assets/img/vi-logo.png'
+  })
+}
+
+;(async () => {
+  // Oswald is the project's own condensed face; used when no logo file exists.
+  try {
+    const ff = new FontFace('IconCond', "url(../assets/fonts/oswald-600.woff2)", { weight: '600' })
+    await ff.load(); document.fonts.add(ff)
+  } catch (e) { /* fall back to a system face */ }
+
+  const logo = await loadLogo()
+  const c = document.createElement('canvas')
+  c.width = c.height = S
+  const ctx = c.getContext('2d')
+  plate(ctx)
+
+  if (logo) {
+    const w = BODY * 0.60
+    ctx.drawImage(logo, OFF + (BODY - w) / 2, OFF + (BODY - w * (logo.height / logo.width)) / 2,
+                  w, w * (logo.height / logo.width))
+  } else {
+    // Typographic mark, so a clean checkout builds an icon of its own.
+    const target = BODY * 0.44
+    ctx.font = '600 400px IconCond, Impact, sans-serif'
+    const probe = ctx.measureText('VI')
+    const size = 400 * target / (probe.actualBoundingBoxRight + probe.actualBoundingBoxLeft)
+    ctx.font = `600 ${size}px IconCond, Impact, sans-serif`
+    const m = ctx.measureText('VI')
+    const tw = m.actualBoundingBoxRight + m.actualBoundingBoxLeft
+    const th = m.actualBoundingBoxAscent + m.actualBoundingBoxDescent
+    ctx.fillStyle = '#F4F1E4'
+    ctx.fillText('VI', OFF + (BODY - tw) / 2 + m.actualBoundingBoxLeft,
+                 OFF + (BODY + th) / 2 - m.actualBoundingBoxDescent)
+  }
+  gloss(ctx)
+
+  master = c
+  window.__USED_LOGO = !!logo
+  window.__READY = true
+})()
+
+/* Downscale the master plate to any icon size. */
+window.__render = function (size) {
+  const c = document.createElement('canvas')
+  c.width = c.height = size
+  const ctx = c.getContext('2d')
+  ctx.imageSmoothingQuality = 'high'
+  ctx.drawImage(master, 0, 0, size, size)
+  return c.toDataURL('image/png')
+}
+</script>
