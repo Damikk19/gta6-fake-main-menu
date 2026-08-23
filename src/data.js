@@ -19,24 +19,24 @@ const TABS = {
     label: 'Story',
     start: { col: 1, row: 0 },
     tiles: [
-      { slot:'a', col:0, row:0, label:'NEW GAME', img:IMG.newGame, key:'new-game', kicker:'NEW GAME', title:'Begin a New Story', act:'confirmNew' },
-      { slot:'b', col:1, row:0, label:'CONTINUE', img:IMG.continue, key:'continue', kicker:'CONTINUE', title:'Air Station - Break In', chip:'16.9%', act:'load', mode:'story' },
-      { slot:'c', col:2, row:0, label:'SETTINGS', img:IMG.settings, key:'settings', rowSpan:2,
+      { slot:'a', col:0, row:0, id:'newGame', label:'NEW GAME', img:IMG.newGame, key:'new-game', kicker:'NEW GAME', title:'Begin a New Story', act:'confirmNew' },
+      { slot:'b', col:1, row:0, id:'continue', label:'CONTINUE', img:IMG.continue, key:'continue', kicker:'CONTINUE', title:'Air Station - Break In', chip:'16.9%', act:'load', mode:'story' },
+      { slot:'c', col:2, row:0, id:'settings', label:'SETTINGS', img:IMG.settings, key:'settings', rowSpan:2,
         kicker:'SETTINGS', title:'Display, Audio & Controls', act:'settings' },
-      { slot:'d', col:0, row:1, label:'COLLECTIBLES', img:IMG.collectibles, key:'collectibles', kicker:'COLLECTIBLES', title:'Statues, Rumors & Signals', chip:'12/145', act:'stats', data:'collectibles' },
-      { slot:'e', col:1, row:1, label:'PROGRESS', img:IMG.progress, key:'progress', kicker:'PROGRESS', title:'Story Completion', chip:'16.9%', act:'stats', data:'progress' }
+      { slot:'d', col:0, row:1, id:'collectibles', label:'COLLECTIBLES', img:IMG.collectibles, key:'collectibles', kicker:'COLLECTIBLES', title:'Statues, Rumors & Signals', chip:'12/145', act:'stats', data:'collectibles' },
+      { slot:'e', col:1, row:1, id:'progress', label:'PROGRESS', img:IMG.progress, key:'progress', kicker:'PROGRESS', title:'Story Completion', chip:'16.9%', act:'stats', data:'progress' }
     ]
   },
   online: {
     label: 'Online',
     start: { col: 1, row: 0 },
     tiles: [
-      { slot:'a', col:0, row:0, label:'QUICK JOIN', img:IMG.progress, key:'progress', kicker:'QUICK JOIN', title:'Find a Public Session', act:'load', mode:'online' },
-      { slot:'b', col:1, row:0, label:'PLAY ONLINE', img:IMG.continue, key:'continue', kicker:'PLAY ONLINE', title:'Vice City - Free Mode', chip:'RANK 1', act:'load', mode:'online' },
-      { slot:'c', col:2, row:0, label:'CHARACTER', img:IMG.settings, key:'settings', rowSpan:2,
+      { slot:'a', col:0, row:0, id:'quickJoin', label:'QUICK JOIN', img:IMG.progress, key:'progress', kicker:'QUICK JOIN', title:'Find a Public Session', act:'load', mode:'online' },
+      { slot:'b', col:1, row:0, id:'playOnline', label:'PLAY ONLINE', img:IMG.continue, key:'continue', kicker:'PLAY ONLINE', title:'Vice City - Free Mode', chip:'RANK 1', act:'load', mode:'online' },
+      { slot:'c', col:2, row:0, id:'character', label:'CHARACTER', img:IMG.settings, key:'settings', rowSpan:2,
         kicker:'CHARACTER', title:'Create & Customize', act:'stats', data:'character' },
-      { slot:'d', col:0, row:1, label:'CREATOR', img:IMG.collectibles, key:'collectibles', kicker:'CREATOR', title:'Build Your Own Jobs', act:'load', mode:'creator' },
-      { slot:'e', col:1, row:1, label:'CREW', img:IMG.newGame, key:'new-game', kicker:'CREW', title:'Find or Start a Crew', act:'dialog', data:'crew' }
+      { slot:'d', col:0, row:1, id:'creator', label:'CREATOR', img:IMG.collectibles, key:'collectibles', kicker:'CREATOR', title:'Build Your Own Jobs', act:'load', mode:'creator' },
+      { slot:'e', col:1, row:1, id:'crew', label:'CREW', img:IMG.newGame, key:'new-game', kicker:'CREW', title:'Find or Start a Crew', act:'dialog', data:'crew' }
     ]
   }
 }
@@ -113,6 +113,35 @@ const STATS = {
     ['Reputation',0,800],['Missions Completed',0,64],['Races Won',0,30],
     ['Money','$2,500',null],['K/D Ratio','0.00',null],['Time Played','0h 00m',null]
   ]}
+}
+
+/* Everything a viewer is likely to want to personalise, overridable from a
+   content.json in the artwork folder so a downloaded build can be edited too. */
+const PROFILE = {
+  name: 'Player',
+  rank: 1,
+  crew: 'No Crew',
+  memberSince: '2013',
+  playersOnline: 1247392,
+  lastPlayed: 'Today'
+}
+
+const SOCIAL = {
+  friends: [
+    ['Kacper_2137', 'Online — Vice City'],
+    ['xNoScopeMarek', 'Online — Free Mode'],
+    ['Dominik.exe', 'Online — Creator'],
+    ['bartek_gtav', 'Offline — 2 hours ago'],
+    ['SzymonPL', 'Offline — Yesterday'],
+    ['mikolaj_04', 'Offline — 3 days ago']
+  ],
+  activity: [
+    ['Completed "Air Station - Break In"', '14 minutes ago'],
+    ['Reached 16.9% Total Completion', '14 minutes ago'],
+    ['Found 12 of 145 Collectibles', '2 hours ago'],
+    ['Purchased Starlet Motel Room 4', 'Yesterday'],
+    ['Joined a Free Mode session', 'Yesterday']
+  ]
 }
 
 const TIPS = [

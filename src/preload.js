@@ -4,6 +4,7 @@ contextBridge.exposeInMainWorld('gtavi', {
   openArtworkFolder: () => ipcRenderer.invoke('artwork:open'),
   artworkStatus: () => ipcRenderer.invoke('artwork:status'),
   framing: () => ipcRenderer.invoke('artwork:framing'),
+  content: () => ipcRenderer.invoke('artwork:content'),
   // File.path was removed from the renderer, so paths are resolved here.
   importDropped: (fileList, fallbackSlot) => {
     const paths = Array.from(fileList).map(f => webUtils.getPathForFile(f)).filter(Boolean)

@@ -22,6 +22,7 @@ const HINTS = {
   menu:     [['Social Club','triangle'],['Select','cross'],['Back','circle']],
   settings: [['Reset to Default','triangle'],['Select','cross'],['Back','circle']],
   stats:    [['Back','circle']],
+  social:   [['Back','circle']],
   modal:    [['Select','cross'],['Back','circle']]
 }
 
@@ -36,6 +37,21 @@ function onImageMissing (img, handle) {
   if (img.complete && img.naturalWidth === 0) handle()
 }
 
+/* Video wins over a still of the same name, so a tile may hold either. */
+function makeMedia (key, onMissing) {
+  const isVideo = ARTKINDS[key] === 'video'
+  const el = document.createElement(isVideo ? 'video' : 'img')
+  if (isVideo) {
+    el.muted = true; el.loop = true; el.autoplay = true; el.playsInline = true
+    el.setAttribute('muted', ''); el.setAttribute('playsinline', '')
+  } else el.alt = ''
+  el.addEventListener('error', onMissing)
+  el.src = artUrl(key)
+  if (!isVideo && el.complete && el.naturalWidth === 0) onMissing()
+  if (isVideo) el.play().catch(() => {})
+  return el
+}
+
 /* ---------------- stage scaling ---------------- */
 function fit () {
   const s = Math.min(window.innerWidth / STAGE_W, window.innerHeight / STAGE_H)
@@ -46,12 +62,13 @@ fit()
 
 /* ---------------- artwork ---------------- */
 let FRAMING = {}
+let ARTKINDS = {}
 let artToken = 0
 const artUrl = key => `art://${key}${artToken ? '?t=' + artToken : ''}`
 const framingFor = key => Object.assign({ op: '50% 50%', zoom: 1 }, FRAMING[key] || {})
 
 /* ---------------- screen router ---------------- */
-const SCREENS = { menu:'screenMenu', settings:'screenSettings', stats:'screenStats', loading:'screenLoading' }
+const SCREENS = { menu:'screenMenu', settings:'screenSettings', stats:'screenStats', social:'screenSocial', loading:'screenLoading' }
 let screen = 'menu'
 let modalOpen = false
 
@@ -99,13 +116,12 @@ function renderTiles () {
     const el = document.createElement('button')
     el.className = 'tile'
     el.style.cssText = `left:${r.x}px;top:${r.y}px;width:${r.w}px;height:${r.h}px`
-    el.innerHTML = '<img alt=""><div class="scrim"></div>' + `<div class="label">${t.label}</div>`
+    el.innerHTML = `<div class="scrim"></div><div class="label">${t.label}</div>`
     const f = framingFor(t.key)
-    const im = el.querySelector('img')
-    im.style.setProperty('--op', f.op)
-    im.style.setProperty('--zoom', String(f.zoom))
-    im.src = artUrl(t.key)
-    onImageMissing(im, () => im.classList.add('is-missing'))
+    const media = makeMedia(t.key, () => media.classList.add('is-missing'))
+    media.style.setProperty('--op', f.op)
+    media.style.setProperty('--zoom', String(f.zoom))
+    el.prepend(media)
     el.addEventListener('mouseenter', () => { if (mouseActive) moveTo(t.col, t.row) })
     el.addEventListener('click', () => { moveTo(t.col, t.row); activate() })
     grid.appendChild(el)
@@ -281,6 +297,24 @@ function openStats (key) {
   show('stats')
 }
 
+/* ================= social club ================= */
+function openSocial () {
+  $('scAvatar').textContent = (PROFILE.name || 'P').trim().charAt(0).toUpperCase()
+  $('scName').textContent = PROFILE.name
+  $('scMeta').textContent = `Rank ${PROFILE.rank}  ·  ${PROFILE.crew}`
+  $('scSince').textContent = `Member since ${PROFILE.memberSince}`
+  const online = SOCIAL.friends.filter(f => /^online/i.test(f[1])).length
+  $('scFriendsHead').textContent = `FRIENDS  (${online} OF ${SOCIAL.friends.length} ONLINE)`
+  $('scFriends').innerHTML = SOCIAL.friends.map(([name, state]) =>
+    `<div class="sc-row${/^online/i.test(state) ? ' is-online' : ''}">` +
+    `<div class="r1">${name}</div><div class="r2">${state}</div><span class="dot"></span></div>`).join('')
+  $('scActivity').innerHTML = SOCIAL.activity.map(([what, when]) =>
+    `<div class="sc-row"><div class="r1">${what}</div><div class="r2">${when}</div></div>`).join('')
+  $('scFoot').innerHTML = `<b>${PROFILE.playersOnline.toLocaleString('en-US')}</b> players online` +
+                          `  ·  Last played ${PROFILE.lastPlayed}`
+  show('social')
+}
+
 /* ================= loading ================= */
 let loadRaf = null
 let loadStart = 0
@@ -306,16 +340,15 @@ function stageText (stages, pct) {
 
 function startLoading (tile) {
   const mode = tile.mode || 'story'
-  const art = $('loadArt')
-  art.classList.remove('is-missing')
-  art.src = artUrl(tile.key)
-  onImageMissing(art, () => art.classList.add('is-missing'))
+  const holder = $('loadMedia')
+  holder.innerHTML = ''
+  const art = makeMedia(tile.key, () => art.classList.add('is-missing'))
+  holder.appendChild(art)
   $('loadTitle').textContent = tile.title || ''
   $('loadKicker').textContent = mode === 'online' ? 'JOINING SESSION' : 'LOADING'
   $('loadPct').textContent = '0%'
   $('loadFill').style.width = '0%'
   $('loadStatus').textContent = 'Initializing'
-  art.style.animation = 'none'; void art.offsetWidth; art.style.animation = ''
 
   let tip = Math.floor(Math.random() * TIPS.length)
   const paintTip = () => { $('loadTip').innerHTML = `<b>TIP</b>&nbsp;&nbsp;${TIPS[tip % TIPS.length]}` }
@@ -332,7 +365,8 @@ function startLoading (tile) {
     const pct = lerpCurve(curve, now - loadStart)
     $('loadPct').textContent = Math.floor(pct) + '%'
     $('loadFill').style.width = pct + '%'
-    $('loadStatus').textContent = stageText(stages, pct)
+    $('loadStatus').textContent = stageText(stages, pct) +
+      (mode === 'online' ? '  ·  ' + PROFILE.playersOnline.toLocaleString('en-US') + ' players online' : '')
     Sound.setLoadProgress(pct)
     loadRaf = requestAnimationFrame(step)
   }
@@ -418,6 +452,7 @@ function dispatch (action) {
     else if (action === 'select') activate()
     else if (action === 'tabPrev') cycleTab(-1)
     else if (action === 'tabNext') cycleTab(1)
+    else if (action === 'triangle') { Sound.open(); openSocial() }
   } else if (screen === 'settings') {
     const rows = SETTINGS[catIdx].rows
     if (action === 'tabPrev') { catIdx = (catIdx - 1 + SETTINGS.length) % SETTINGS.length; rowIdx = 0; renderSettings(); Sound.tab() }
@@ -427,9 +462,9 @@ function dispatch (action) {
       paintSettings(); Sound.move()
     } else if (action === 'left') adjust(-1)
     else if (action === 'right') adjust(1)
-    else if (action === 'reset') resetDefaults()
+    else if (action === 'triangle') resetDefaults()
     else if (action === 'back') goBack()
-  } else if (screen === 'stats' || screen === 'loading') {
+  } else if (screen === 'stats' || screen === 'social' || screen === 'loading') {
     if (action === 'back' || action === 'select') goBack()
   }
 }
@@ -440,7 +475,7 @@ const KEYMAP = {
   ArrowUp:'up', w:'up', W:'up', ArrowDown:'down', s:'down', S:'down',
   Enter:'select', ' ':'select', Escape:'back', Backspace:'back',
   q:'tabPrev', Q:'tabPrev', e:'tabNext', E:'tabNext', Tab:'tabNext',
-  r:'reset', R:'reset'
+  r:'triangle', R:'triangle', t:'triangle', T:'triangle'
 }
 
 window.addEventListener('keydown', e => {
@@ -453,7 +488,7 @@ window.addEventListener('keydown', e => {
 /* ================= gamepad ================= */
 /* The hint bar promises L1/R1 and PlayStation face buttons, so a pad should
    actually drive it. Standard mapping: 0 cross, 1 circle, 4 L1, 5 R1, 12-15 dpad. */
-const PAD_BUTTONS = { 0:'select', 1:'back', 3:'reset', 4:'tabPrev', 5:'tabNext', 9:'select' }
+const PAD_BUTTONS = { 0:'select', 1:'back', 3:'triangle', 4:'tabPrev', 5:'tabNext', 9:'select' }
 const AXIS_DEADZONE = 0.55
 const REPEAT_FIRST = 420
 const REPEAT_NEXT = 150
@@ -566,8 +601,9 @@ window.addEventListener('drop', async e => {
   if (written && written.length) { refreshArtwork(); Sound.select() }
 })
 
-function refreshArtwork () {
+async function refreshArtwork () {
   artToken = Date.now()
+  if (bridge.artworkStatus) { try { ARTKINDS = (await bridge.artworkStatus()).kinds || {} } catch {} }
   renderTiles()
   const logo = $('viLogo')
   logo.classList.remove('is-missing')
@@ -578,6 +614,34 @@ function refreshArtwork () {
     $('viFallback').classList.add('is-shown')
   })
   if (bridge.artworkStatus) bridge.artworkStatus().then(({ ready }) => { $('artHint').hidden = ready })
+}
+
+/* Applies content.json, so a downloaded build can be personalised without
+   touching the source or rebuilding. */
+function applyContent (c) {
+  if (!c || typeof c !== 'object') return
+  if (c.profile && typeof c.profile === 'object') Object.assign(PROFILE, c.profile)
+  if (Array.isArray(c.friends)) SOCIAL.friends = c.friends
+  if (Array.isArray(c.activity)) SOCIAL.activity = c.activity
+  if (c.tiles && typeof c.tiles === 'object') {
+    for (const tab of Object.values(TABS)) {
+      for (const tile of tab.tiles) {
+        const o = c.tiles[tile.id]
+        if (!o) continue
+        for (const f of ['label', 'kicker', 'title', 'chip']) {
+          if (typeof o[f] === 'string') tile[f] = o[f]
+        }
+      }
+    }
+  }
+  if (c.stats && typeof c.stats === 'object') {
+    for (const [key, o] of Object.entries(c.stats)) {
+      if (!STATS[key] || !o) continue
+      if (typeof o.big === 'string') STATS[key].big = o.big
+      if (typeof o.sub === 'string') STATS[key].sub = o.sub
+      if (Array.isArray(o.rows)) STATS[key].rows = o.rows
+    }
+  }
 }
 
 /* ================= start-up ================= */
@@ -602,6 +666,8 @@ window.addEventListener('mousemove', () => {
 
 ;(async () => {
   if (bridge.framing) { try { FRAMING = await bridge.framing() } catch { FRAMING = {} } }
+  if (bridge.content) { try { applyContent(await bridge.content()) } catch { /* keep defaults */ } }
+  if (bridge.artworkStatus) { try { ARTKINDS = (await bridge.artworkStatus()).kinds || {} } catch { ARTKINDS = {} } }
   // Lay out only once the real faces are in, or the first paint uses fallback
   // metrics and every measured position shifts.
   try {

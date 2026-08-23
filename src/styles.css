@@ -215,10 +215,13 @@ body.show-cursor { cursor:default }
 
 /* ================= loading ================= */
 #screenLoading { background:#0a0910 }
-.load-art {
+.load-media { position:absolute; inset:0 }
+.load-media img, .load-media video {
   position:absolute; inset:0; width:100%; height:100%; object-fit:cover;
-  animation:kenburns 48s ease-out both;
 }
+/* Only stills need the slow push; a clip already moves. */
+.load-media img { animation:kenburns 48s ease-out both }
+.load-media .is-missing { display:none }
 @keyframes kenburns { from { transform:scale(1.02) } to { transform:scale(1.14) } }
 .load-scrim {
   position:absolute; inset:0;
@@ -287,7 +290,6 @@ body.show-cursor { cursor:default }
   position:absolute; inset:0; z-index:-1;
   background:linear-gradient(145deg, #221f31 0%, #14121d 55%, #0d0b14 100%);
 }
-.load-art.is-missing { display:none }
 
 .art-hint {
   position:absolute; left:50%; top:44px; transform:translateX(-50%);
@@ -346,3 +348,38 @@ body.show-cursor { cursor:default }
   border:2px dashed rgba(252,247,210,.5); background:rgba(252,247,210,.07);
   font:700 30px/1 'GTA UI', sans-serif; color:#FCF7D2;
 }
+
+/* ================= social club ================= */
+.sc-profile { position:absolute; left:113px; top:300px; width:560px; display:flex; gap:30px; align-items:center }
+.sc-avatar {
+  width:132px; height:132px; border-radius:50%; flex:none; background:#FCF7D2; color:#14121a;
+  font-family:'GTA Cond', sans-serif; font-weight:600; font-size:70px; line-height:132px;
+  text-align:center;
+}
+.sc-name { font:700 42px/1 'GTA UI', sans-serif; color:#fff }
+.sc-meta { margin-top:12px; font:600 25px/1 'GTA UI', sans-serif; color:#FCF7D2 }
+.sc-since { margin-top:10px; font:500 22px/1 'GTA UI', sans-serif; color:rgba(255,255,255,.45) }
+
+.sc-col { position:absolute; top:282px; width:560px }
+.sc-friends { left:740px }
+.sc-activity { left:1348px }
+.sc-head {
+  font-family:'GTA Cond', sans-serif; font-weight:600; font-size:26px; line-height:1;
+  color:#FCF7D2; transform:scaleX(.91); transform-origin:left top;
+  padding-bottom:16px; border-bottom:1px solid rgba(255,255,255,.13);
+}
+.sc-row { position:relative; padding:19px 0; border-bottom:1px solid rgba(255,255,255,.07) }
+.sc-row .r1 { font:700 24px/1 'GTA UI', sans-serif; color:#fff }
+.sc-row .r2 { margin-top:9px; font:500 21px/1 'GTA UI', sans-serif; color:rgba(255,255,255,.5) }
+.sc-row .dot {
+  position:absolute; right:2px; top:26px; width:11px; height:11px; border-radius:50%;
+  background:rgba(255,255,255,.24);
+}
+.sc-row.is-online .dot { background:#7BD88F }
+.sc-row.is-online .r2 { color:rgba(123,216,143,.75) }
+
+.sc-foot {
+  position:absolute; left:113px; top:969px;
+  font:600 24px/1 'GTA UI', sans-serif; color:rgba(255,255,255,.55);
+}
+.sc-foot b { color:#FCF7D2; font-weight:700 }
