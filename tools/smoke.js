@@ -37,10 +37,9 @@ const shot = path.join(os.tmpdir(), 'gtavi-smoke.png')
 fs.rmSync(shot, { force: true })
 console.log('smoke: launching ' + bin)
 
-// CI containers block user namespaces, so the sandbox has to come off there.
-const args = process.platform === 'linux' ? ['--no-sandbox'] : []
 let stdout = ''
-const child = spawn(bin, args, {
+// No extra flags: this must exercise exactly what a user double-clicks.
+const child = spawn(bin, [], {
   env: { ...process.env, SHOT: shot, SHOT_W: '1000', SHOT_H: '563', SHOT_DELAY: '4000' },
   stdio: ['ignore', 'pipe', 'inherit']
 })
