@@ -298,3 +298,51 @@ body.show-cursor { cursor:default }
 }
 .art-hint:hover { background:rgba(252,247,210,.22) }
 .art-hint[hidden] { display:none }
+
+/* ================= boot sequence ================= */
+.boot {
+  position:absolute; inset:0; z-index:20; background:#000;
+  display:grid; place-items:center; transition:opacity .7s ease;
+}
+.boot.is-done { opacity:0; pointer-events:none }
+.boot[hidden] { display:none }
+.boot-stage {
+  position:absolute; opacity:0; transition:opacity .9s ease;
+  display:grid; place-items:center; text-align:center;
+}
+.boot-stage.is-on { opacity:1 }
+
+#bootLegal { max-width:1180px; gap:26px }
+#bootLegal p { font:500 25px/1.55 'GTA UI', sans-serif; color:rgba(255,255,255,.62) }
+#bootLegal .boot-warn {
+  font-family:'GTA Cond', sans-serif; font-weight:600; font-size:30px; letter-spacing:1px;
+  color:#FCF7D2; transform:scaleX(.91);
+}
+#bootLegal .boot-fiction { font-size:22px; color:rgba(255,255,255,.42) }
+
+#bootMark img { width:300px; height:auto; display:block }
+#bootMark img.is-missing { display:none }
+.boot-mark-text {
+  display:none; font-family:'GTA Cond', sans-serif; font-weight:600; font-size:190px;
+  line-height:1; color:#F4F1E4; letter-spacing:4px;
+}
+.boot-mark-text.is-shown { display:block }
+
+#bootPress { font:700 27px/1 'GTA UI', sans-serif; letter-spacing:3.5px; color:#FCF7D2 }
+/* The keyframes animate opacity, which outranks the base rule — so the pulse
+   may only run while this stage is the active one. */
+#bootPress.is-on { animation:bootPulse 1.9s ease-in-out infinite }
+@keyframes bootPulse { 0%,100% { opacity:.35 } 50% { opacity:1 } }
+
+/* ================= drag & drop ================= */
+.drop-veil {
+  position:absolute; inset:0; z-index:15; display:grid; place-items:center;
+  background:rgba(6,5,10,.80); opacity:0; visibility:hidden;
+  transition:opacity .16s ease, visibility .16s;
+}
+.drop-veil.is-on { opacity:1; visibility:visible }
+.drop-msg {
+  padding:34px 54px; border-radius:16px;
+  border:2px dashed rgba(252,247,210,.5); background:rgba(252,247,210,.07);
+  font:700 30px/1 'GTA UI', sans-serif; color:#FCF7D2;
+}

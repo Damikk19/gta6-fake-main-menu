@@ -26,6 +26,8 @@ const HINTS = {
 }
 
 const $ = id => document.getElementById(id)
+const stage = $('stage')
+const bridge = window.gtavi || {}
 
 /* An <img> can fail before a listener is attached, so also test the settled
    state: a broken image reports complete with a zero natural width. */
@@ -33,7 +35,6 @@ function onImageMissing (img, handle) {
   img.addEventListener('error', handle)
   if (img.complete && img.naturalWidth === 0) handle()
 }
-const stage = $('stage')
 
 /* ---------------- stage scaling ---------------- */
 function fit () {
@@ -42,6 +43,12 @@ function fit () {
 }
 window.addEventListener('resize', fit)
 fit()
+
+/* ---------------- artwork ---------------- */
+let FRAMING = {}
+let artToken = 0
+const artUrl = key => `art://${key}${artToken ? '?t=' + artToken : ''}`
+const framingFor = key => Object.assign({ op: '50% 50%', zoom: 1 }, FRAMING[key] || {})
 
 /* ---------------- screen router ---------------- */
 const SCREENS = { menu:'screenMenu', settings:'screenSettings', stats:'screenStats', loading:'screenLoading' }
@@ -54,10 +61,13 @@ function setHints (which) {
 }
 
 function show (name) {
+  const was = screen
   screen = name
   for (const [key, id] of Object.entries(SCREENS)) $(id).classList.toggle('is-active', key === name)
   $('hintbar').classList.toggle('is-hidden', name === 'loading')
   if (name !== 'loading') setHints(modalOpen ? 'modal' : name)
+  if (name === 'loading' && was !== 'loading') Sound.startAmbient('loading')
+  if (was === 'loading' && name !== 'loading') Sound.startAmbient('menu')
 }
 
 /* ================= main menu ================= */
@@ -89,11 +99,12 @@ function renderTiles () {
     const el = document.createElement('button')
     el.className = 'tile'
     el.style.cssText = `left:${r.x}px;top:${r.y}px;width:${r.w}px;height:${r.h}px`
-    el.innerHTML = `<img src="${t.img}" alt=""><div class="scrim"></div><div class="label">${t.label}</div>`
-    const f = t.frame || { op:'50% 50%', zoom:1 }
+    el.innerHTML = '<img alt=""><div class="scrim"></div>' + `<div class="label">${t.label}</div>`
+    const f = framingFor(t.key)
     const im = el.querySelector('img')
     im.style.setProperty('--op', f.op)
     im.style.setProperty('--zoom', String(f.zoom))
+    im.src = artUrl(t.key)
     onImageMissing(im, () => im.classList.add('is-missing'))
     el.addEventListener('mouseenter', () => { if (mouseActive) moveTo(t.col, t.row) })
     el.addEventListener('click', () => { moveTo(t.col, t.row); activate() })
@@ -122,6 +133,7 @@ function moveTo (col, row) {
   if (!tileAt(col, row) || (cursor.col === col && cursor.row === row)) return
   cursor = { col, row }
   paintMenu()
+  Sound.move()
 }
 
 function moveMenu (dx, dy) {
@@ -140,6 +152,7 @@ function setTab (key) {
   renderTabs(); renderTiles()
   const grid = $('grid')
   grid.classList.remove('tab-in'); void grid.offsetWidth; grid.classList.add('tab-in')
+  Sound.tab()
 }
 
 function cycleTab (dir) {
@@ -153,6 +166,7 @@ function activate () {
   if (hit) {
     hit.el.classList.remove('is-pressed'); void hit.el.offsetWidth; hit.el.classList.add('is-pressed')
   }
+  Sound.select()
   setTimeout(() => {
     switch (cur.act) {
       case 'settings':   openSettings(); break
@@ -161,7 +175,7 @@ function activate () {
       case 'confirmNew': openModal('NEW GAME',
         'Starting a new game will not overwrite your existing save. Any unsaved progress in your current session will be lost.',
         ['Start New Game', 'Cancel'],
-        i => { if (i === 0) startLoading({ mode:'story', title:'Prologue - Leonida', img:cur.img }) }); break
+        i => { if (i === 0) startLoading({ mode:'story', title:'Prologue - Leonida', key:cur.key }) }); break
       case 'dialog':     openModal('CREW',
         'You are not currently a member of a Crew. Join or start one from the Rockstar Games Social Club to earn bonus RP with your friends.',
         ['OK'], () => {}); break
@@ -175,9 +189,7 @@ let rowIdx = 0
 
 function openSettings () { catIdx = 0; rowIdx = 0; renderSettings(); show('settings') }
 
-function valueText (r) {
-  return r.type === 'pct' ? r.v + '%' : r.options[r.i]
-}
+const valueText = r => (r.type === 'pct' ? r.v + '%' : r.options[r.i])
 
 function renderSettings () {
   const cats = $('setCats')
@@ -186,7 +198,7 @@ function renderSettings () {
     const b = document.createElement('button')
     b.className = 'set-cat' + (i === catIdx ? ' is-active' : '')
     b.textContent = c.label
-    b.addEventListener('click', () => { catIdx = i; rowIdx = 0; renderSettings() })
+    b.addEventListener('click', () => { catIdx = i; rowIdx = 0; renderSettings(); Sound.tab() })
     cats.appendChild(b)
   })
   const rows = $('setRows')
@@ -195,10 +207,10 @@ function renderSettings () {
     const b = document.createElement('button')
     b.className = 'set-row' + (i === rowIdx ? ' is-selected' : '')
     b.innerHTML = `<span class="nm">${r.name}</span>` +
-      `<span class="val"><span class="arrow">&#8249;</span>` +
+      '<span class="val"><span class="arrow">&#8249;</span>' +
       `<span class="valtext">${valueText(r)}</span>` +
-      `<span class="arrow">&#8250;</span></span>`
-    b.addEventListener('mouseenter', () => { if (mouseActive) { rowIdx = i; paintSettings() } })
+      '<span class="arrow">&#8250;</span></span>'
+    b.addEventListener('mouseenter', () => { if (mouseActive && rowIdx !== i) { rowIdx = i; paintSettings(); Sound.move() } })
     b.addEventListener('click', () => { rowIdx = i; adjust(1) })
     rows.appendChild(b)
   })
@@ -221,6 +233,8 @@ function adjust (dir) {
   if (r.type === 'pct') r.v = Math.max(0, Math.min(100, r.v + dir * r.step))
   else r.i = (r.i + dir + r.options.length) % r.options.length
   paintSettings()
+  syncVolumes()
+  Sound.adjust()
 }
 
 /* Authored values are the factory defaults; snapshot them once at start-up. */
@@ -232,6 +246,19 @@ function resetDefaults () {
     if (r.type === 'pct') r.v = d; else r.i = d
   })
   paintSettings()
+  syncVolumes()
+  Sound.back()
+}
+
+/* The audio sliders drive the real output gains. */
+function syncVolumes () {
+  const audio = SETTINGS.find(c => c.label === 'AUDIO')
+  if (!audio) return
+  const get = name => {
+    const row = audio.rows.find(r => r.name === name)
+    return row ? row.v / 100 : 1
+  }
+  Sound.setVolumes({ master: get('Master Volume'), sfx: get('Sound Effects'), music: get('Music Volume') })
 }
 
 /* ================= stats ================= */
@@ -281,13 +308,13 @@ function startLoading (tile) {
   const mode = tile.mode || 'story'
   const art = $('loadArt')
   art.classList.remove('is-missing')
-  art.src = tile.img
+  art.src = artUrl(tile.key)
+  onImageMissing(art, () => art.classList.add('is-missing'))
   $('loadTitle').textContent = tile.title || ''
   $('loadKicker').textContent = mode === 'online' ? 'JOINING SESSION' : 'LOADING'
   $('loadPct').textContent = '0%'
   $('loadFill').style.width = '0%'
   $('loadStatus').textContent = 'Initializing'
-
   art.style.animation = 'none'; void art.offsetWidth; art.style.animation = ''
 
   let tip = Math.floor(Math.random() * TIPS.length)
@@ -306,6 +333,7 @@ function startLoading (tile) {
     $('loadPct').textContent = Math.floor(pct) + '%'
     $('loadFill').style.width = pct + '%'
     $('loadStatus').textContent = stageText(stages, pct)
+    Sound.setLoadProgress(pct)
     loadRaf = requestAnimationFrame(step)
   }
   loadRaf = requestAnimationFrame(step)
@@ -331,7 +359,7 @@ function openModal (title, body, buttons, onPick) {
     const b = document.createElement('button')
     b.className = 'modal-btn' + (i === 0 ? ' is-selected' : '')
     b.textContent = label
-    b.addEventListener('mouseenter', () => { if (mouseActive) { modalIdx = i; paintModal() } })
+    b.addEventListener('mouseenter', () => { if (mouseActive && modalIdx !== i) { modalIdx = i; paintModal(); Sound.move() } })
     b.addEventListener('click', () => { modalIdx = i; confirmModal() })
     wrap.appendChild(b)
     return b
@@ -341,11 +369,10 @@ function openModal (title, body, buttons, onPick) {
   modalOpen = true
   $('modalLayer').classList.add('is-open')
   setHints('modal')
+  Sound.open()
 }
 
-function paintModal () {
-  modalBtns.forEach((b, i) => b.classList.toggle('is-selected', i === modalIdx))
-}
+const paintModal = () => modalBtns.forEach((b, i) => b.classList.toggle('is-selected', i === modalIdx))
 
 function closeModal () {
   modalOpen = false
@@ -356,52 +383,210 @@ function closeModal () {
 function confirmModal () {
   const pick = modalIdx
   const done = modalDone
+  Sound.select()
   closeModal()
   if (done) done(pick)
 }
 
-/* ================= input ================= */
+/* ================= actions ================= */
 function goBack () {
-  if (screen === 'loading') { stopLoading(); show('menu') }
-  else if (screen !== 'menu') show('menu')
+  if (screen === 'menu') return
+  Sound.back()
+  if (screen === 'loading') stopLoading()
+  show('menu')
 }
 
-window.addEventListener('keydown', e => {
-  const k = e.key
-  const dir = { ArrowLeft:[-1,0], a:[-1,0], A:[-1,0], ArrowRight:[1,0], d:[1,0], D:[1,0],
-                ArrowUp:[0,-1], w:[0,-1], W:[0,-1], ArrowDown:[0,1], s:[0,1], S:[0,1] }[k]
-  const select = k === 'Enter' || k === ' '
-  const back = k === 'Escape' || k === 'Backspace'
+/* Keyboard and gamepad both funnel through here. */
+function dispatch (action) {
+  Sound.resume()
+  if (bootActive) { bootAdvance(true); return }
 
   if (modalOpen) {
-    if (dir && dir[0]) { modalIdx = (modalIdx + dir[0] + modalBtns.length) % modalBtns.length; paintModal() }
-    else if (select) confirmModal()
-    else if (back) closeModal()
-    else return
-    e.preventDefault(); return
+    if (action === 'left' || action === 'right') {
+      modalIdx = (modalIdx + (action === 'right' ? 1 : -1) + modalBtns.length) % modalBtns.length
+      paintModal(); Sound.move()
+    } else if (action === 'select') confirmModal()
+    else if (action === 'back') { Sound.back(); closeModal() }
+    return
   }
 
   if (screen === 'menu') {
-    if (dir) moveMenu(dir[0], dir[1])
-    else if (select) activate()
-    else if (k === 'q' || k === 'Q') cycleTab(-1)
-    else if (k === 'e' || k === 'E' || k === 'Tab') cycleTab(1)
-    else return
+    if (action === 'left') moveMenu(-1, 0)
+    else if (action === 'right') moveMenu(1, 0)
+    else if (action === 'up') moveMenu(0, -1)
+    else if (action === 'down') moveMenu(0, 1)
+    else if (action === 'select') activate()
+    else if (action === 'tabPrev') cycleTab(-1)
+    else if (action === 'tabNext') cycleTab(1)
   } else if (screen === 'settings') {
     const rows = SETTINGS[catIdx].rows
-    if (k === 'q' || k === 'Q') { catIdx = (catIdx - 1 + SETTINGS.length) % SETTINGS.length; rowIdx = 0; renderSettings() }
-    else if (k === 'e' || k === 'E' || k === 'Tab') { catIdx = (catIdx + 1) % SETTINGS.length; rowIdx = 0; renderSettings() }
-    else if (dir && dir[1]) { rowIdx = (rowIdx + dir[1] + rows.length) % rows.length; paintSettings() }
-    else if (dir && dir[0]) adjust(dir[0])
-    else if (k === 'r' || k === 'R') resetDefaults()
-    else if (back) goBack()
-    else return
+    if (action === 'tabPrev') { catIdx = (catIdx - 1 + SETTINGS.length) % SETTINGS.length; rowIdx = 0; renderSettings(); Sound.tab() }
+    else if (action === 'tabNext') { catIdx = (catIdx + 1) % SETTINGS.length; rowIdx = 0; renderSettings(); Sound.tab() }
+    else if (action === 'up' || action === 'down') {
+      rowIdx = (rowIdx + (action === 'down' ? 1 : -1) + rows.length) % rows.length
+      paintSettings(); Sound.move()
+    } else if (action === 'left') adjust(-1)
+    else if (action === 'right') adjust(1)
+    else if (action === 'reset') resetDefaults()
+    else if (action === 'back') goBack()
   } else if (screen === 'stats' || screen === 'loading') {
-    if (back || select) goBack()
-    else return
+    if (action === 'back' || action === 'select') goBack()
   }
+}
+
+/* ================= keyboard ================= */
+const KEYMAP = {
+  ArrowLeft:'left', a:'left', A:'left', ArrowRight:'right', d:'right', D:'right',
+  ArrowUp:'up', w:'up', W:'up', ArrowDown:'down', s:'down', S:'down',
+  Enter:'select', ' ':'select', Escape:'back', Backspace:'back',
+  q:'tabPrev', Q:'tabPrev', e:'tabNext', E:'tabNext', Tab:'tabNext',
+  r:'reset', R:'reset'
+}
+
+window.addEventListener('keydown', e => {
+  const action = KEYMAP[e.key]
+  if (!action) { if (bootActive) { Sound.resume(); bootAdvance(true); e.preventDefault() } return }
+  dispatch(action)
   e.preventDefault()
 })
+
+/* ================= gamepad ================= */
+/* The hint bar promises L1/R1 and PlayStation face buttons, so a pad should
+   actually drive it. Standard mapping: 0 cross, 1 circle, 4 L1, 5 R1, 12-15 dpad. */
+const PAD_BUTTONS = { 0:'select', 1:'back', 3:'reset', 4:'tabPrev', 5:'tabNext', 9:'select' }
+const AXIS_DEADZONE = 0.55
+const REPEAT_FIRST = 420
+const REPEAT_NEXT = 150
+
+let padPrev = {}
+let padHeld = null
+let padHeldAt = 0
+let padRepeatAt = 0
+
+function pollPads () {
+  const pads = navigator.getGamepads ? navigator.getGamepads() : []
+  const now = performance.now()
+  let dir = null
+
+  for (const pad of pads) {
+    if (!pad) continue
+    pad.buttons.forEach((b, i) => {
+      const down = b.pressed || b.value > 0.5
+      const key = pad.index + ':' + i
+      if (down && !padPrev[key]) {
+        if (PAD_BUTTONS[i]) dispatch(PAD_BUTTONS[i])
+        else if (i >= 12 && i <= 15) dir = ['up','down','left','right'][i - 12]
+      }
+      if (down && i >= 12 && i <= 15) dir = dir || ['up','down','left','right'][i - 12]
+      padPrev[key] = down
+    })
+    const [lx, ly] = pad.axes
+    if (Math.abs(lx) > AXIS_DEADZONE || Math.abs(ly) > AXIS_DEADZONE) {
+      dir = dir || (Math.abs(lx) > Math.abs(ly) ? (lx > 0 ? 'right' : 'left') : (ly > 0 ? 'down' : 'up'))
+    }
+  }
+
+  if (dir) {
+    if (dir !== padHeld) { padHeld = dir; padHeldAt = now; padRepeatAt = now; dispatch(dir) }
+    else if (now - padHeldAt > REPEAT_FIRST && now - padRepeatAt > REPEAT_NEXT) {
+      padRepeatAt = now; dispatch(dir)
+    }
+  } else padHeld = null
+
+  requestAnimationFrame(pollPads)
+}
+requestAnimationFrame(pollPads)
+
+/* ================= boot sequence ================= */
+const BOOT_STEPS = [
+  { el: null,        hold: 600 },
+  { el: 'bootLegal', hold: 5200 },
+  { el: 'bootMark',  hold: 3000 },
+  { el: 'bootPress', hold: Infinity }
+]
+let bootActive = true
+let bootStep = -1
+let bootTimer = null
+
+function bootAdvance (fromInput) {
+  if (!bootActive) return
+  clearTimeout(bootTimer)
+  // input during the reel jumps to the prompt; at the prompt it enters the menu
+  if (fromInput && bootStep < BOOT_STEPS.length - 1) bootStep = BOOT_STEPS.length - 2
+  bootStep++
+  if (bootStep >= BOOT_STEPS.length) { bootFinish(); return }
+  BOOT_STEPS.forEach(s => { if (s.el) $(s.el).classList.remove('is-on') })
+  const step = BOOT_STEPS[bootStep]
+  if (step.el) $(step.el).classList.add('is-on')
+  if (step.hold !== Infinity) bootTimer = setTimeout(() => bootAdvance(false), step.hold)
+}
+
+function bootFinish () {
+  bootActive = false
+  clearTimeout(bootTimer)
+  const el = $('boot')
+  el.classList.add('is-done')
+  setTimeout(() => { el.hidden = true }, 800)
+  Sound.resume()
+  Sound.startAmbient('menu')
+  Sound.select()
+}
+
+function bootStart () {
+  if (bridge.skipBoot) { $('boot').hidden = true; bootActive = false; Sound.startAmbient('menu'); return }
+  onImageMissing($('bootLogo'), () => {
+    $('bootLogo').classList.add('is-missing')
+    $('bootMarkText').classList.add('is-shown')
+  })
+  bootAdvance(false)
+}
+
+/* Any click also gets past the boot reel. */
+window.addEventListener('mousedown', () => { if (bootActive) { Sound.resume(); bootAdvance(true) } })
+
+/* ================= drag & drop artwork ================= */
+let dragDepth = 0
+const veil = $('dropVeil')
+
+window.addEventListener('dragenter', e => {
+  e.preventDefault()
+  if (++dragDepth === 1) veil.classList.add('is-on')
+})
+window.addEventListener('dragover', e => e.preventDefault())
+window.addEventListener('dragleave', e => {
+  e.preventDefault()
+  if (--dragDepth <= 0) { dragDepth = 0; veil.classList.remove('is-on') }
+})
+window.addEventListener('drop', async e => {
+  e.preventDefault()
+  dragDepth = 0
+  veil.classList.remove('is-on')
+  if (!bridge.importDropped || !e.dataTransfer.files.length) return
+  const written = await bridge.importDropped(e.dataTransfer.files, currentTile().key)
+  if (written && written.length) { refreshArtwork(); Sound.select() }
+})
+
+function refreshArtwork () {
+  artToken = Date.now()
+  renderTiles()
+  const logo = $('viLogo')
+  logo.classList.remove('is-missing')
+  $('viFallback').classList.remove('is-shown')
+  logo.src = artUrl('vi-logo')
+  onImageMissing(logo, () => {
+    logo.classList.add('is-missing')
+    $('viFallback').classList.add('is-shown')
+  })
+  if (bridge.artworkStatus) bridge.artworkStatus().then(({ ready }) => { $('artHint').hidden = ready })
+}
+
+/* ================= start-up ================= */
+onImageMissing($('viLogo'), () => {
+  $('viLogo').classList.add('is-missing')
+  $('viFallback').classList.add('is-shown')
+})
+
+$('artHint').addEventListener('click', () => bridge.openArtworkFolder && bridge.openArtworkFolder())
 
 /* Cursor stays hidden like an in-game menu, but reappears while the mouse moves. */
 let hideTimer = null
@@ -415,19 +600,21 @@ window.addEventListener('mousemove', () => {
   }, 1600)
 })
 
-/* ---------------- artwork state ---------------- */
-onImageMissing($('viLogo'), () => {
-  $('viLogo').classList.add('is-missing')
-  $('viFallback').classList.add('is-shown')
-})
-onImageMissing($('loadArt'), () => $('loadArt').classList.add('is-missing'))
-
-const hint = $('artHint')
-hint.addEventListener('click', () => window.gtavi && window.gtavi.openArtworkFolder())
-if (window.gtavi) {
-  window.gtavi.artworkStatus().then(({ ready }) => { hint.hidden = ready })
-}
-
-renderTabs()
-renderTiles()
-setHints('menu')
+;(async () => {
+  if (bridge.framing) { try { FRAMING = await bridge.framing() } catch { FRAMING = {} } }
+  // Lay out only once the real faces are in, or the first paint uses fallback
+  // metrics and every measured position shifts.
+  try {
+    await Promise.all([
+      document.fonts.load('600 38.5px "GTA Cond"'),
+      document.fonts.load('700 32px "GTA UI"'),
+      document.fonts.load('500 23px "GTA UI"')
+    ])
+  } catch { /* fall back to whatever is available */ }
+  renderTabs()
+  renderTiles()
+  setHints('menu')
+  syncVolumes()
+  if (bridge.artworkStatus) bridge.artworkStatus().then(({ ready }) => { $('artHint').hidden = ready })
+  bootStart()
+})()

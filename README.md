@@ -75,7 +75,12 @@ do którego wrzucasz zdjęcia:
 - **macOS** — `~/Library/Application Support/Grand Theft Auto VI/artwork`
 - **Windows** — `%APPDATA%\Grand Theft Auto VI\artwork`
 
-Wrzuć tam pliki o takich nazwach (`.png`, `.jpg`, `.jpeg`, `.webp` lub `.avif`):
+**Najszybciej:** po prostu **przeciągnij zdjęcia na okno aplikacji**. Plik nazwany
+jak slot trafi na swoje miejsce, a plik o dowolnej innej nazwie wyląduje na
+aktualnie podświetlonym kafelku.
+
+Ręcznie — wrzuć do folderu pliki o takich nazwach (`.png`, `.jpg`, `.jpeg`,
+`.webp` lub `.avif`):
 
 | Plik | Gdzie ląduje |
 |---|---|
@@ -89,6 +94,22 @@ Wrzuć tam pliki o takich nazwach (`.png`, `.jpg`, `.jpeg`, `.webp` lub `.avif`)
 Najlepiej wyglądają zdjęcia 16:9 w rozdzielczości 1920×1080 lub większej.
 Po wrzuceniu **zrestartuj aplikację**. Bez `vi-logo` w rogu wyświetli się
 zwykły napis „VI".
+
+### Kadrowanie
+
+Zdjęcia są domyślnie wyśrodkowane. Jeśli któreś jest przycięte nie tak, jak
+chcesz, dorzuć do folderu plik `framing.json`:
+
+```json
+{
+  "continue":  { "op": "6% 50%",  "zoom": 1.01 },
+  "settings":  { "op": "60% 15%", "zoom": 1.30 }
+}
+```
+
+`op` to `object-position` CSS (`0%` = lewa/góra, `100%` = prawa/dół), a `zoom`
+to dodatkowe przybliżenie ponad wypełnienie kafelka. Wystarczy wpisać tylko te
+kafelki, które chcesz poprawić.
 
 Skąd wziąć grafiki — to już Twoja decyzja i Twoja odpowiedzialność. Może to być
 cokolwiek: oficjalne materiały prasowe, zrzuty z zwiastuna, własne zdjęcia,
@@ -108,8 +129,29 @@ memy. Aplikacji jest wszystko jedno.
 | `R` w ustawieniach | przywróć domyślne w kategorii |
 | `F11` (Win) · `Ctrl`+`Cmd`+`F` (Mac) | **pełny ekran — włącz to przed nagrywaniem** |
 
+**Pad działa** — podłącz kontroler i steruj gałką albo krzyżakiem. Krzyżyk/A
+wybiera, kółko/B cofa, L1/R1 przełącza zakładki i kategorie ustawień, trójkąt/Y
+przywraca domyślne. Na kamerze wygląda to dużo lepiej niż stukanie w klawiaturę,
+bo interfejs i tak pokazuje przyciski PlayStation.
+
 Kursor myszy znika po 1,5 s bezruchu, żeby obraz był czysty. Zaznaczenie nie
 przeskakuje samo, gdy okno otworzy się pod kursorem.
+
+### Dźwięk
+
+Menu klika przy każdym ruchu, ma osobne dźwięki potwierdzenia, cofnięcia i
+zmiany zakładki, plus ciche tło, które na ekranie ładowania przechodzi w
+ciemniejszy wariant i otwiera filtr w miarę zapełniania paska. Wszystko jest
+**syntezowane w locie przez Web Audio** — w paczce nie ma ani jednego pliku
+dźwiękowego. Suwaki w *Settings → Audio* naprawdę sterują głośnością; zjedź
+Master na 0, jeśli wolisz ciszę.
+
+### Rozruch
+
+Aplikacja startuje sekwencją jak prawdziwa gra: ostrzeżenie o padaczce, plansza
+z logo, potem „PRESS ANY BUTTON". Dowolny klawisz albo przycisk pada przeskakuje
+od razu do końca. Dzięki temu nagranie zaczyna się od *odpalania gry*, a nie od
+gotowego menu.
 
 ---
 
@@ -162,7 +204,8 @@ src/preload.js    mostek do otwierania folderu z grafikami
 src/index.html    szkielet wszystkich ekranów
 src/styles.css    warstwa wizualna (zmierzone współrzędne)
 src/data.js       treść: kafelki, opcje, statystyki, tipy, krzywe ładowania
-src/renderer.js   router ekranów, nawigacja, symulacja ładowania
+src/audio.js      syntezowane dźwięki UI i tło (bez plików audio)
+src/renderer.js   router ekranów, wejście z klawiatury i pada, rozruch, ładowanie
 tools/            generator ikon (.png/.icns/.ico) — bez zewnętrznych zależności
 ```
 
