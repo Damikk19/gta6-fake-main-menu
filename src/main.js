@@ -10,6 +10,10 @@ app.setName('Grand Theft Auto VI')
 // before they are allowed to start.
 app.commandLine.appendSwitch('autoplay-policy', 'no-user-gesture-required')
 
+// A 'no-sandbox' switch would be pointless here: Chromium starts its sandbox
+// helper before this file runs, so the flag arrives too late to matter. The
+// Linux package ships run.sh, which sets ELECTRON_DISABLE_SANDBOX instead.
+
 const ASSETS = path.join(__dirname, '..', 'assets')
 
 /* ------------------------------------------------------------------
