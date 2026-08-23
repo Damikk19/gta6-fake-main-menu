@@ -6,6 +6,10 @@ const { pathToFileURL } = require('url')
 // The window/dock/menubar must read as the real thing.
 app.setName('Grand Theft Auto VI')
 
+// The menu bed and UI sounds are synthesised, so no click should be needed
+// before they are allowed to start.
+app.commandLine.appendSwitch('autoplay-policy', 'no-user-gesture-required')
+
 const ASSETS = path.join(__dirname, '..', 'assets')
 
 /* ------------------------------------------------------------------
@@ -64,6 +68,49 @@ function ensureArtworkFolder () {
 }
 
 const haveArtwork = () => SLOTS.some(s => s !== 'vi-logo' && resolveArtwork(s))
+
+/* Per-tile crop framing, so a picture that does not match the reference shot
+   can be nudged instead of being cropped to an edge. */
+function readFraming () {
+  try {
+    const raw = fs.readFileSync(path.join(artworkDir(), 'framing.json'), 'utf8')
+    const parsed = JSON.parse(raw)
+    return parsed && typeof parsed === 'object' ? parsed : {}
+  } catch { return {} }
+}
+
+const slugToSlot = name => {
+  const stem = path.basename(name, path.extname(name)).toLowerCase().replace(/[\s_]+/g, '-')
+  return SLOTS.includes(stem) ? stem : null
+}
+
+/* Copies dropped pictures into the artwork folder. A file already named after a
+   slot goes there; anything else fills the tile the user had highlighted. */
+function importArtwork (files, fallbackSlot) {
+  const dir = ensureArtworkFolder()
+  const written = []
+  let fallbackUsed = false
+  for (const src of files) {
+    const ext = path.extname(src).toLowerCase()
+    if (!EXTS.includes(ext)) continue
+    let slot = slugToSlot(src)
+    if (!slot) {
+      if (fallbackUsed || !SLOTS.includes(fallbackSlot)) continue
+      slot = fallbackSlot
+      fallbackUsed = true
+    }
+    try {
+      // drop other extensions for this slot, or resolution order would win
+      for (const e of EXTS) {
+        const old = path.join(dir, slot + e)
+        if (e !== ext && fs.existsSync(old)) fs.rmSync(old)
+      }
+      fs.copyFileSync(src, path.join(dir, slot + ext))
+      written.push(slot)
+    } catch { /* skip anything unreadable */ }
+  }
+  return written
+}
 
 protocol.registerSchemesAsPrivileged([
   { scheme: 'art', privileges: { standard: true, secure: true, supportFetchAPI: true, stream: true } }
@@ -130,7 +177,15 @@ function createWindow () {
 
   // Nothing in the page may rename the window.
   win.on('page-title-updated', (e) => { e.preventDefault() })
-  win.once('ready-to-show', () => win.show())
+  win.once('ready-to-show', () => {
+    // While capturing, stay out of the way: a focused window on a desktop in
+    // use catches the operator's real keystrokes and clicks.
+    if (process.env.SHOT) {
+      win.setFocusable(false)
+      win.setIgnoreMouseEvents(true)
+      win.showInactive()
+    } else win.show()
+  })
 
   // Dev helper: SHOT=/path/out.png npm start -> capture and exit.
   if (process.env.SHOT) {
@@ -162,6 +217,8 @@ app.whenReady().then(() => {
 
   ipcMain.handle('artwork:open', () => shell.openPath(ensureArtworkFolder()))
   ipcMain.handle('artwork:status', () => ({ dir: artworkDir(), ready: haveArtwork() }))
+  ipcMain.handle('artwork:framing', () => readFraming())
+  ipcMain.handle('artwork:import', (_e, files, fallbackSlot) => importArtwork(files, fallbackSlot))
 
   buildMenu()
   ensureArtworkFolder()

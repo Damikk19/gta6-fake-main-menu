@@ -72,6 +72,28 @@
         <div class="hints" id="hints"></div>
       </div>
 
+      <!-- ===== drag & drop artwork ===== -->
+      <div class="drop-veil" id="dropVeil">
+        <div class="drop-msg">Drop images to use them as menu artwork</div>
+      </div>
+
+      <!-- ===== boot sequence ===== -->
+      <section class="boot" id="boot">
+        <div class="boot-stage" id="bootLegal">
+          <p class="boot-warn">PHOTOSENSITIVITY WARNING</p>
+          <p>A very small percentage of people may experience a seizure when exposed to
+             certain flashing lights or patterns. If you or anyone in your family has an
+             epileptic condition, consult your physician before playing.</p>
+          <p class="boot-fiction">This product is a work of fiction. Any similarity to actual
+             persons, places, buildings and products is coincidental.</p>
+        </div>
+        <div class="boot-stage" id="bootMark">
+          <img id="bootLogo" src="art://vi-logo" alt="">
+          <div class="boot-mark-text" id="bootMarkText">VI</div>
+        </div>
+        <div class="boot-stage" id="bootPress">PRESS ANY BUTTON</div>
+      </section>
+
       <!-- ===== confirmation dialog ===== -->
       <div class="modal-layer" id="modalLayer">
         <div class="modal">
@@ -83,6 +105,7 @@
     </div>
   </div>
   <script src="data.js"></script>
+  <script src="audio.js"></script>
   <script src="renderer.js"></script>
 </body>
 </html>
