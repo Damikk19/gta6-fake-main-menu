@@ -13,12 +13,12 @@ jobs:
       fail-fast: false
       matrix:
         include:
-          - os: macos-14
+          - os: macos-15
             label: macOS-arm64
             script: 'dist:mac'
             dir: 'Grand Theft Auto VI-darwin-arm64'
             asset: GTA-VI-Menu-macOS-arm64
-          - os: macos-13
+          - os: macos-15-intel
             label: macOS-x64
             script: 'dist:mac-x64'
             dir: 'Grand Theft Auto VI-darwin-x64'
