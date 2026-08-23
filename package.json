@@ -1,7 +1,7 @@
 {
   "name": "vi-main-menu-mockup",
   "productName": "Grand Theft Auto VI",
-  "version": "1.2.1",
+  "version": "1.2.2",
   "description": "A fan-made, pixel-matched mockup of the Grand Theft Auto VI main menu. Ships with no game artwork.",
   "license": "MIT",
   "main": "src/main.js",
