@@ -11,3 +11,6 @@ assets/img/icon.png
 # Artwork is supplied by whoever runs the app; none of it belongs in this repo.
 assets/img/*
 !assets/img/.gitkeep
+
+# Claude Code scratch
+.claude/
