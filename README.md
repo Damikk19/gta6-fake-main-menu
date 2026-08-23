@@ -80,6 +80,7 @@ do którego wrzucasz zdjęcia:
 
 - **macOS**: `~/Library/Application Support/Grand Theft Auto VI/artwork`
 - **Windows**: `%APPDATA%\Grand Theft Auto VI\artwork`
+- **Linux**: `~/.config/Grand Theft Auto VI/artwork`
 
 **Najszybciej:** po prostu **przeciągnij zdjęcia na okno aplikacji**. Plik nazwany
 jak slot trafi na swoje miejsce, a plik o dowolnej innej nazwie wyląduje na
