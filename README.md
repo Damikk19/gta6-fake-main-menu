@@ -46,6 +46,10 @@ certyfikatu:
   Terminalu: `xattr -dr com.apple.quarantine "Grand Theft Auto VI.app"`
 - **Windows** — przy niebieskim okienku SmartScreen kliknij **„Więcej informacji"**,
   potem **„Uruchom mimo to"**
+- **Linux** — odpal `./run.sh` z rozpakowanego katalogu, a nie samą binarkę. To
+  akurat nie kwestia podpisu: zip nie przenosi bitu setuid, którego wymaga
+  `chrome-sandbox`, więc aplikacja uruchomiona wprost przerwie start. `run.sh`
+  jest dołączony do paczki dokładnie po to i załatwia to za ciebie.
 
 ### Z kodu
 
