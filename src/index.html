@@ -1,0 +1,88 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta http-equiv="Content-Security-Policy" content="default-src 'self'; img-src 'self' data: art:; style-src 'self'; script-src 'self'">
+  <title>Grand Theft Auto VI</title>
+  <link rel="stylesheet" href="styles.css">
+</head>
+<body>
+  <div id="viewport">
+    <div id="stage">
+      <div class="bg" aria-hidden="true"></div>
+
+      <!-- ===== main menu ===== -->
+      <section class="screen is-active" id="screenMenu">
+        <nav class="tabs" id="tabs"></nav>
+        <div class="grid" id="grid"></div>
+        <div class="info">
+          <div class="info-kicker" id="infoKicker">CONTINUE</div>
+          <div class="info-title" id="infoTitle">Air Station - Break In</div>
+          <div class="info-chip" id="infoChip">16.9%</div>
+        </div>
+      </section>
+
+      <!-- ===== settings ===== -->
+      <section class="screen" id="screenSettings">
+        <div class="page-title">SETTINGS</div>
+        <div class="set-cats" id="setCats"></div>
+        <div class="set-rows" id="setRows"></div>
+        <div class="set-help" id="setHelp"></div>
+      </section>
+
+      <!-- ===== progress / collectibles ===== -->
+      <section class="screen" id="screenStats">
+        <div class="page-title" id="statsTitle">PROGRESS</div>
+        <div class="stats-head">
+          <div class="stats-big" id="statsBig">16.9%</div>
+          <div class="stats-sub" id="statsSub">Total Completion</div>
+        </div>
+        <div class="stats-body" id="statsBody"></div>
+      </section>
+
+      <!-- ===== loading ===== -->
+      <section class="screen" id="screenLoading">
+        <img class="load-art" id="loadArt" alt="">
+        <div class="load-plate"></div>
+        <div class="load-scrim"></div>
+        <div class="load-tip" id="loadTip"></div>
+        <div class="load-kicker" id="loadKicker">LOADING</div>
+        <div class="load-title" id="loadTitle"></div>
+        <div class="load-bar"><i id="loadFill"></i></div>
+        <div class="load-status" id="loadStatus">Initializing</div>
+        <div class="load-spin" id="loadSpin">
+          <svg viewBox="0 0 44 44">
+            <circle cx="22" cy="22" r="18" fill="none" stroke="rgba(252,247,210,.22)" stroke-width="4"/>
+            <circle class="load-spin-arc" cx="22" cy="22" r="18" fill="none" stroke="#FCF7D2"
+                    stroke-width="4" stroke-linecap="round" stroke-dasharray="30 83"/>
+          </svg>
+        </div>
+        <div class="load-pct" id="loadPct">0%</div>
+      </section>
+
+      <img class="vi-logo" id="viLogo" src="art://vi-logo" alt="">
+      <div class="vi-fallback" id="viFallback">VI</div>
+
+      <button class="art-hint" id="artHint" hidden>
+        No artwork yet &mdash; click here to open your artwork folder
+      </button>
+
+      <div class="hintbar" id="hintbar">
+        <div class="hint-rule"></div>
+        <div class="hints" id="hints"></div>
+      </div>
+
+      <!-- ===== confirmation dialog ===== -->
+      <div class="modal-layer" id="modalLayer">
+        <div class="modal">
+          <div class="modal-title"><span id="modalTitle">NEW GAME</span></div>
+          <div class="modal-body" id="modalBody"></div>
+          <div class="modal-actions" id="modalActions"></div>
+        </div>
+      </div>
+    </div>
+  </div>
+  <script src="data.js"></script>
+  <script src="renderer.js"></script>
+</body>
+</html>
