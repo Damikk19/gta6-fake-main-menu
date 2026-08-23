@@ -38,8 +38,11 @@ fs.rmSync(shot, { force: true })
 console.log('smoke: launching ' + bin)
 
 let stdout = ''
-// No extra flags: this must exercise exactly what a user double-clicks.
-const child = spawn(bin, [], {
+// Linux needs --no-sandbox from the command line: a zip cannot carry the setuid
+// bit chrome-sandbox wants, and Chromium aborts before the app's own code runs.
+// That flag is what a Linux user has to type too, so this still matches reality.
+const args = process.platform === 'linux' ? ['--no-sandbox'] : []
+const child = spawn(bin, args, {
   env: { ...process.env, SHOT: shot, SHOT_W: '1000', SHOT_H: '563', SHOT_DELAY: '4000' },
   stdio: ['ignore', 'pipe', 'inherit']
 })

@@ -46,6 +46,11 @@ certyfikatu:
   Terminalu: `xattr -dr com.apple.quarantine "Grand Theft Auto VI.app"`
 - **Windows** — przy niebieskim okienku SmartScreen kliknij **„Więcej informacji"**,
   potem **„Uruchom mimo to"**
+- **Linux** — odpal z terminala z flagą `--no-sandbox`:
+  `./grand-theft-auto-vi --no-sandbox`. Zip nie przenosi bitu setuid, którego
+  wymaga `chrome-sandbox`, a Chromium przerywa start, zanim kod aplikacji w ogóle
+  się wykona — dlatego flaga musi iść z linii poleceń. Jeśli wolisz bez flagi:
+  `sudo chown root chrome-sandbox && sudo chmod 4755 chrome-sandbox`
 
 ### Z kodu
 

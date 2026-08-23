@@ -10,11 +10,10 @@ app.setName('Grand Theft Auto VI')
 // before they are allowed to start.
 app.commandLine.appendSwitch('autoplay-policy', 'no-user-gesture-required')
 
-// A plain zip cannot carry the setuid bit that chrome-sandbox needs, so on
-// Linux the sandbox has to come off or the app aborts on launch. The renderer
-// loads only local files under a strict CSP, with no node integration and no
-// remote content, so there is nothing here for it to contain.
-if (process.platform === 'linux') app.commandLine.appendSwitch('no-sandbox')
+// On Linux the app must be started with --no-sandbox. A plain zip cannot carry
+// the setuid bit chrome-sandbox needs, and Chromium aborts on an unconfigured
+// helper before this file ever runs, so the flag has to come from the command
+// line -- appendSwitch('no-sandbox') here would be too late to have any effect.
 
 const ASSETS = path.join(__dirname, '..', 'assets')
 
