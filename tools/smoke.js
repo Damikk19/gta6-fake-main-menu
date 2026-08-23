@@ -39,10 +39,12 @@ console.log('smoke: launching ' + bin)
 
 // CI containers block user namespaces, so the sandbox has to come off there.
 const args = process.platform === 'linux' ? ['--no-sandbox'] : []
+let stdout = ''
 const child = spawn(bin, args, {
   env: { ...process.env, SHOT: shot, SHOT_W: '1000', SHOT_H: '563', SHOT_DELAY: '4000' },
-  stdio: 'inherit'
+  stdio: ['ignore', 'pipe', 'inherit']
 })
+child.stdout.on('data', d => { stdout += d; process.stdout.write(d) })
 
 const timer = setTimeout(() => { child.kill(); }, 90000)
 
@@ -54,14 +56,27 @@ child.on('exit', code => {
   }
   const buf = fs.readFileSync(shot)
   const size = pngSize(buf)
-  if (!size || size.w !== 2000) {
+  // Frame size follows the runner's pixel ratio, so check shape, not exact pixels.
+  if (!size || size.w < 800 || Math.abs(size.w / size.h - 16 / 9) > 0.05) {
     console.error('smoke: FAILED - unexpected frame ' + JSON.stringify(size))
     process.exit(1)
   }
   // A blank frame compresses to almost nothing; a rendered menu does not.
-  if (buf.length < 30000) {
+  if (buf.length < 15000) {
     console.error(`smoke: FAILED - frame is ${buf.length} bytes, looks blank`)
     process.exit(1)
   }
-  console.log(`smoke: OK - ${size.w}x${size.h}, ${Math.round(buf.length / 1024)}KB`)
+  const m = /SHOT_OK (\{.*\})/.exec(stdout)
+  if (!m) {
+    console.error('smoke: FAILED - app never reported a rendered page')
+    process.exit(1)
+  }
+  let state
+  try { state = JSON.parse(m[1]) } catch { state = {} }
+  if (!state.kicker || state.tiles !== 5) {
+    console.error('smoke: FAILED - menu did not render: ' + m[1])
+    process.exit(1)
+  }
+  console.log(`smoke: OK - ${size.w}x${size.h}, ${Math.round(buf.length / 1024)}KB, ` +
+              `${state.tiles} tiles, selected "${state.kicker}"`)
 })

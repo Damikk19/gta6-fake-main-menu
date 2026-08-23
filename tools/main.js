@@ -4,6 +4,9 @@ const fs = require('fs')
 const path = require('path')
 const os = require('os')
 
+// CI images ship an unconfigured SUID sandbox helper, which aborts Electron.
+if (process.platform === 'linux') app.commandLine.appendSwitch('no-sandbox')
+
 const ROOT = path.join(__dirname, '..')
 const ASSETS = path.join(ROOT, 'assets')
 const ICO_SIZES = [16, 24, 32, 48, 64, 128, 256]

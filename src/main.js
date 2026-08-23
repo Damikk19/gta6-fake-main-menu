@@ -10,6 +10,12 @@ app.setName('Grand Theft Auto VI')
 // before they are allowed to start.
 app.commandLine.appendSwitch('autoplay-policy', 'no-user-gesture-required')
 
+// A plain zip cannot carry the setuid bit that chrome-sandbox needs, so on
+// Linux the sandbox has to come off or the app aborts on launch. The renderer
+// loads only local files under a strict CSP, with no node integration and no
+// remote content, so there is nothing here for it to contain.
+if (process.platform === 'linux') app.commandLine.appendSwitch('no-sandbox')
+
 const ASSETS = path.join(__dirname, '..', 'assets')
 
 /* ------------------------------------------------------------------
@@ -250,6 +256,11 @@ function createWindow () {
         }
         if (process.env.SHOT_POST) await new Promise(r => setTimeout(r, Number(process.env.SHOT_POST)))
         fs.writeFileSync(process.env.SHOT, (await win.webContents.capturePage()).toPNG())
+        // Proof the page actually reached the menu, not just that pixels exist.
+        const state = await win.webContents.executeJavaScript(
+          'JSON.stringify({ kicker: (document.getElementById("infoKicker")||{}).textContent || "",' +
+          ' tiles: document.querySelectorAll(".tile").length })').catch(() => '{}')
+        console.log('SHOT_OK ' + state)
         app.quit()
       }, Number(process.env.SHOT_DELAY || 1200))
     })
