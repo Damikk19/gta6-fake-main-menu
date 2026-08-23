@@ -56,6 +56,14 @@ npm install
 npm start
 ```
 
+Nowsze wersje npm blokują skrypty instalacyjne paczek i wypisują ostrzeżenie
+`allow-scripts`. Jeśli `npm start` padnie z komunikatem, że Electron nie
+zainstalował się poprawnie, dociągnij go ręcznie:
+
+```bash
+node node_modules/electron/install.js
+```
+
 ---
 
 ## 2. Wrzucenie grafik
