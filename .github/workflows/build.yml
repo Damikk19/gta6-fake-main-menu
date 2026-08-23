@@ -38,7 +38,7 @@ jobs:
 
       - uses: actions/setup-node@v4
         with:
-          node-version: 20
+          node-version: 22
           cache: npm
 
       - run: npm ci
@@ -55,9 +55,12 @@ jobs:
         if: runner.os == 'Linux'
         run: sudo apt-get update && sudo apt-get install -y xvfb
 
-      # The icon generator renders in a real Electron window, so Linux needs a display.
+      # The icon generator renders in a real Electron window, so Linux needs a
+      # display, and an unconfigured SUID helper there aborts Electron outright.
       - name: Build
         shell: bash
+        env:
+          ELECTRON_DISABLE_SANDBOX: ${{ runner.os == 'Linux' && '1' || '' }}
         run: |
           if [ "${{ runner.os }}" = "Linux" ]; then
             xvfb-run -a npm run ${{ matrix.script }}
@@ -75,15 +78,7 @@ jobs:
           fi
 
       - name: Confirm no third-party media was packaged
-        shell: bash
-        run: |
-          ASAR=$(find "dist/${{ matrix.dir }}" -name app.asar | head -1)
-          echo "inspecting $ASAR"
-          LIST=$(npx @electron/asar list "$ASAR")
-          echo "$LIST" | grep '^/assets/img' || true
-          if echo "$LIST" | grep -Eq '^/assets/img/(new-game|continue|progress|settings|collectibles|vi-logo)\.'; then
-            echo "artwork leaked into the package"; exit 1
-          fi
+        run: npm run verify
 
       - name: Package
         shell: bash
@@ -92,6 +87,11 @@ jobs:
           cd "dist/${{ matrix.dir }}"
           if [ "${{ runner.os }}" = "macOS" ]; then
             ditto -c -k --sequesterRsrc --keepParent "Grand Theft Auto VI.app" "../../out/${{ matrix.asset }}.zip"
+          elif [ "${{ runner.os }}" = "Linux" ]; then
+            # A zip loses the setuid bit chrome-sandbox needs, so ship a launcher.
+            printf '#!/bin/sh\ncd "$(dirname "$0")"\nELECTRON_DISABLE_SANDBOX=1 exec "./Grand Theft Auto VI" "$@"\n' > run.sh
+            chmod +x run.sh
+            zip -q -r -9 "../../out/${{ matrix.asset }}.zip" .
           else
             7z a -tzip "../../out/${{ matrix.asset }}.zip" . > /dev/null
           fi

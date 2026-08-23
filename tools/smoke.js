@@ -38,9 +38,12 @@ fs.rmSync(shot, { force: true })
 console.log('smoke: launching ' + bin)
 
 let stdout = ''
-// No extra flags: this must exercise exactly what a user double-clicks.
+// Mirrors what a user runs. On Linux that is run.sh, which sets this because a
+// zip cannot carry the setuid bit chrome-sandbox needs.
+const env = { ...process.env, SHOT: shot, SHOT_W: '1000', SHOT_H: '563', SHOT_DELAY: '4000' }
+if (process.platform === 'linux') env.ELECTRON_DISABLE_SANDBOX = '1'
 const child = spawn(bin, [], {
-  env: { ...process.env, SHOT: shot, SHOT_W: '1000', SHOT_H: '563', SHOT_DELAY: '4000' },
+  env,
   stdio: ['ignore', 'pipe', 'inherit']
 })
 child.stdout.on('data', d => { stdout += d; process.stdout.write(d) })

@@ -17,7 +17,8 @@
     "dist:linux": "electron-packager . \"Grand Theft Auto VI\" --platform=linux --arch=x64 --icon=assets/img/icon.png --app-bundle-id=io.github.damikk19.vi-menu-mockup --out=dist --overwrite --ignore=\"^/(\\.work|dist|tools|docs)\" --ignore=\"^/assets/img/(new-game|continue|progress|settings|collectibles|vi-logo)\\.\" --ignore=\"^/assets/icon\\.(ico|icns)$\"",
     "predist:mac-x64": "npm run icons",
     "predist:linux": "npm run icons",
-    "smoke": "node tools/smoke.js"
+    "smoke": "node tools/smoke.js",
+    "verify": "node tools/verify-package.js"
   },
   "devDependencies": {
     "@electron/packager": "^20.3.0",
