@@ -1,0 +1,118 @@
+name: build
+
+on:
+  push:
+    tags: ['v*']
+  workflow_dispatch:
+
+jobs:
+  build:
+    name: ${{ matrix.label }}
+    runs-on: ${{ matrix.os }}
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          - os: macos-14
+            label: macOS-arm64
+            script: 'dist:mac'
+            dir: 'Grand Theft Auto VI-darwin-arm64'
+            asset: GTA-VI-Menu-macOS-arm64
+          - os: macos-13
+            label: macOS-x64
+            script: 'dist:mac-x64'
+            dir: 'Grand Theft Auto VI-darwin-x64'
+            asset: GTA-VI-Menu-macOS-x64
+          - os: windows-latest
+            label: Windows-x64
+            script: 'dist:win'
+            dir: 'Grand Theft Auto VI-win32-x64'
+            asset: GTA-VI-Menu-Windows-x64
+          - os: ubuntu-latest
+            label: Linux-x64
+            script: 'dist:linux'
+            dir: 'Grand Theft Auto VI-linux-x64'
+            asset: GTA-VI-Menu-Linux-x64
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 20
+          cache: npm
+
+      - run: npm ci
+
+      # Newer npm holds package install scripts for approval, which can leave
+      # the Electron binary unfetched.
+      - name: Ensure Electron binary
+        shell: bash
+        run: |
+          node -e "process.exit(require('fs').existsSync('node_modules/electron/dist') ? 0 : 1)" \
+            || node node_modules/electron/install.js
+
+      - name: Install xvfb
+        if: runner.os == 'Linux'
+        run: sudo apt-get update && sudo apt-get install -y xvfb
+
+      # The icon generator renders in a real Electron window, so Linux needs a display.
+      - name: Build
+        shell: bash
+        run: |
+          if [ "${{ runner.os }}" = "Linux" ]; then
+            xvfb-run -a npm run ${{ matrix.script }}
+          else
+            npm run ${{ matrix.script }}
+          fi
+
+      - name: Smoke test
+        shell: bash
+        run: |
+          if [ "${{ runner.os }}" = "Linux" ]; then
+            xvfb-run -a npm run smoke
+          else
+            npm run smoke
+          fi
+
+      - name: Confirm no third-party media was packaged
+        shell: bash
+        run: |
+          ASAR=$(find "dist/${{ matrix.dir }}" -name app.asar | head -1)
+          echo "inspecting $ASAR"
+          LIST=$(npx @electron/asar list "$ASAR")
+          echo "$LIST" | grep '^/assets/img' || true
+          if echo "$LIST" | grep -Eq '^/assets/img/(new-game|continue|progress|settings|collectibles|vi-logo)\.'; then
+            echo "artwork leaked into the package"; exit 1
+          fi
+
+      - name: Package
+        shell: bash
+        run: |
+          mkdir -p out
+          cd "dist/${{ matrix.dir }}"
+          if [ "${{ runner.os }}" = "macOS" ]; then
+            ditto -c -k --sequesterRsrc --keepParent "Grand Theft Auto VI.app" "../../out/${{ matrix.asset }}.zip"
+          else
+            7z a -tzip "../../out/${{ matrix.asset }}.zip" . > /dev/null
+          fi
+
+      - uses: actions/upload-artifact@v4
+        with:
+          name: ${{ matrix.asset }}
+          path: out/*.zip
+          retention-days: 14
+
+  release:
+    needs: build
+    if: startsWith(github.ref, 'refs/tags/v')
+    runs-on: ubuntu-latest
+    permissions:
+      contents: write
+    steps:
+      - uses: actions/download-artifact@v4
+        with:
+          path: downloaded
+      - run: ls -R downloaded
+      - uses: softprops/action-gh-release@v2
+        with:
+          files: downloaded/**/*.zip

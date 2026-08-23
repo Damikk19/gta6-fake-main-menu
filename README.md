@@ -33,7 +33,9 @@ Pobierz z zakładki [**Releases**](../../releases) paczkę dla swojego systemu:
 | System | Plik |
 |---|---|
 | macOS (Apple Silicon, M1/M2/M3/M4) | `GTA-VI-Menu-macOS-arm64.zip` |
+| macOS (Intel) | `GTA-VI-Menu-macOS-x64.zip` |
 | Windows 10/11 (64-bit) | `GTA-VI-Menu-Windows-x64.zip` |
+| Linux (64-bit) | `GTA-VI-Menu-Linux-x64.zip` |
 
 Rozpakuj i odpal. Aplikacja **nie jest podpisana cyfrowo**, więc system
 najpierw zaprotestuje, to normalne dla darmowych narzędzi bez płatnego
@@ -79,8 +81,9 @@ do którego wrzucasz zdjęcia:
 jak slot trafi na swoje miejsce, a plik o dowolnej innej nazwie wyląduje na
 aktualnie podświetlonym kafelku.
 
-Ręcznie: wrzuć do folderu pliki o takich nazwach (`.png`, `.jpg`, `.jpeg`,
-`.webp` lub `.avif`):
+Ręcznie: wrzuć do folderu pliki o takich nazwach. Obsługiwane są zdjęcia
+(`.png`, `.jpg`, `.jpeg`, `.webp`, `.avif`) **oraz wideo** (`.mp4`, `.webm`,
+`.mov`, `.m4v`):
 
 | Plik | Gdzie ląduje |
 |---|---|
@@ -91,9 +94,18 @@ Ręcznie: wrzuć do folderu pliki o takich nazwach (`.png`, `.jpg`, `.jpeg`,
 | `progress` | mały kafelek, środkowy dolny |
 | `vi-logo` | opcjonalne logo w prawym górnym rogu (musi mieć przezroczyste tło) |
 
-Najlepiej wyglądają zdjęcia 16:9 w rozdzielczości 1920×1080 lub większej.
+Najlepiej wyglądają materiały 16:9 w rozdzielczości 1920×1080 lub większej.
 Po wrzuceniu **zrestartuj aplikację**. Bez `vi-logo` w rogu wyświetli się
 zwykły napis „VI".
+
+### Ruchome kafelki
+
+Zamiast zdjęcia możesz wrzucić **klip wideo pod tą samą nazwą**, np.
+`continue.mp4`. Odtwarza się zapętlony i wyciszony, z tym samym kadrowaniem co
+zdjęcia, a na ekranie ładowania staje się ruchomym tłem. Wideo ma pierwszeństwo
+przed zdjęciem o tej samej nazwie, więc możesz trzymać oba i podmieniać przez
+usunięcie klipu. Krótkie urywki z zwiastuna wyglądają najlepiej, bo i tak lecą
+w kółko.
 
 ### Kadrowanie
 
@@ -111,6 +123,29 @@ chcesz, dorzuć do folderu plik `framing.json`:
 to dodatkowe przybliżenie ponad wypełnienie kafelka. Wystarczy wpisać tylko te
 kafelki, które chcesz poprawić.
 
+### Własne teksty
+
+Nick, nazwa misji, procenty i statystyki są podmienialne plikiem `content.json`
+w tym samym folderze, **bez przebudowywania aplikacji**, więc działa też na
+pobranej paczce:
+
+```json
+{
+  "profile": { "name": "TwojNick", "rank": 34, "crew": "Ekipa", "playersOnline": 1247392 },
+  "tiles": {
+    "continue": { "title": "Vice Beach - Skok na jubilera", "chip": "63.4%" },
+    "progress": { "chip": "63.4%" }
+  },
+  "stats": { "progress": { "big": "63.4%" } }
+}
+```
+
+Identyfikatory kafelków: `newGame`, `continue`, `settings`, `collectibles`,
+`progress` (Story) oraz `quickJoin`, `playOnline`, `character`, `creator`,
+`crew` (Online). W każdym możesz nadpisać `label`, `kicker`, `title` i `chip`.
+Listy `friends` i `activity` sterują ekranem Social Club. Wpisujesz tylko to,
+co chcesz zmienić. Reszta zostaje domyślna.
+
 Skąd wziąć grafiki? To już Twoja decyzja i Twoja odpowiedzialność. Może to być
 cokolwiek: oficjalne materiały prasowe, zrzuty z zwiastuna, własne zdjęcia,
 memy. Aplikacji jest wszystko jedno.
@@ -126,7 +161,7 @@ memy. Aplikacji jest wszystko jedno.
 | `←` `→` w ustawieniach | zmiana wartości opcji |
 | `Q` / `E` albo `Tab` | Story ↔ Online, w ustawieniach zmiana kategorii (L1/R1) |
 | `Esc` / `Backspace` | powrót do menu |
-| `R` w ustawieniach | przywróć domyślne w kategorii |
+| `T` / `R` | Social Club (w ustawieniach: przywróć domyślne) |
 | `F11` (Win) · `Ctrl`+`Cmd`+`F` (Mac) | **pełny ekran, włącz to przed nagrywaniem** |
 
 **Pad działa**: podłącz kontroler i steruj gałką albo krzyżakiem. Krzyżyk/A
@@ -206,7 +241,8 @@ src/styles.css    warstwa wizualna (zmierzone współrzędne)
 src/data.js       treść: kafelki, opcje, statystyki, tipy, krzywe ładowania
 src/audio.js      syntezowane dźwięki UI i tło (bez plików audio)
 src/renderer.js   router ekranów, wejście z klawiatury i pada, rozruch, ładowanie
-tools/            generator ikon (.png/.icns/.ico), bez zewnętrznych zależności
+tools/            generator ikon (.png/.icns/.ico) i smoke test paczek
+.github/          buildy CI dla macOS, Windows i Linuksa
 ```
 
 Wszystkie teksty siedzą w `src/data.js`: podpisy kafelków, opcje ustawień,
@@ -215,10 +251,16 @@ wiersze statystyk, tipy i krzywe tempa ładowania.
 ### Budowanie paczek
 
 ```bash
-npm run dist:mac    # macOS arm64
-npm run dist:win    # Windows x64
-npm run dist        # oba naraz
+npm run dist:mac       # macOS Apple Silicon
+npm run dist:mac-x64   # macOS Intel
+npm run dist:win       # Windows x64
+npm run dist:linux     # Linux x64
+npm run smoke          # odpala zbudowaną paczkę i sprawdza, czy renderuje
 ```
+
+Paczki dla wszystkich czterech platform buduje też GitHub Actions przy każdym
+tagu `v*`. Każda przechodzi smoke test (uruchomienie i zrzut ekranu) oraz
+kontrolę, czy do środka nie trafiły cudze materiały.
 
 Buildy **nigdy nie zawierają grafik**: pakowanie jawnie pomija `assets/img/`,
 a aplikacja czyta zdjęcia z folderu użytkownika w czasie działania. Ikony

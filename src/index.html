@@ -2,7 +2,7 @@
 <html lang="en">
 <head>
   <meta charset="utf-8">
-  <meta http-equiv="Content-Security-Policy" content="default-src 'self'; img-src 'self' data: art:; style-src 'self'; script-src 'self'">
+  <meta http-equiv="Content-Security-Policy" content="default-src 'self'; img-src 'self' data: art:; media-src 'self' art:; style-src 'self'; script-src 'self'">
   <title>Grand Theft Auto VI</title>
   <link rel="stylesheet" href="styles.css">
 </head>
@@ -40,9 +40,31 @@
         <div class="stats-body" id="statsBody"></div>
       </section>
 
+      <!-- ===== social club ===== -->
+      <section class="screen" id="screenSocial">
+        <div class="page-title">SOCIAL CLUB</div>
+        <div class="sc-profile">
+          <div class="sc-avatar" id="scAvatar">P</div>
+          <div class="sc-ident">
+            <div class="sc-name" id="scName">Player</div>
+            <div class="sc-meta" id="scMeta">Rank 1</div>
+            <div class="sc-since" id="scSince">Member since 2013</div>
+          </div>
+        </div>
+        <div class="sc-col sc-friends">
+          <div class="sc-head" id="scFriendsHead">FRIENDS</div>
+          <div class="sc-list" id="scFriends"></div>
+        </div>
+        <div class="sc-col sc-activity">
+          <div class="sc-head">RECENT ACTIVITY</div>
+          <div class="sc-list" id="scActivity"></div>
+        </div>
+        <div class="sc-foot" id="scFoot"></div>
+      </section>
+
       <!-- ===== loading ===== -->
       <section class="screen" id="screenLoading">
-        <img class="load-art" id="loadArt" alt="">
+        <div class="load-media" id="loadMedia"></div>
         <div class="load-plate"></div>
         <div class="load-scrim"></div>
         <div class="load-tip" id="loadTip"></div>

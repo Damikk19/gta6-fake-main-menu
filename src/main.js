@@ -1,7 +1,7 @@
-const { app, BrowserWindow, Menu, nativeImage, screen, protocol, net, shell, ipcMain } = require('electron')
+const { app, BrowserWindow, Menu, nativeImage, screen, protocol, shell, ipcMain } = require('electron')
 const path = require('path')
 const fs = require('fs')
-const { pathToFileURL } = require('url')
+const { Readable } = require('stream')
 
 // The window/dock/menubar must read as the real thing.
 app.setName('Grand Theft Auto VI')
@@ -14,44 +14,70 @@ const ASSETS = path.join(__dirname, '..', 'assets')
 
 /* ------------------------------------------------------------------
    Artwork lives outside the app, in a folder the user controls, so no
-   third-party images ever ship inside the build. Files are served to the
+   third-party media ever ships inside the build. Files are served to the
    page over an "art://" scheme instead of raw file:// paths.
 ------------------------------------------------------------------ */
 const SLOTS = ['new-game', 'continue', 'progress', 'settings', 'collectibles', 'vi-logo']
-const EXTS = ['.png', '.jpg', '.jpeg', '.webp', '.avif']
+const IMAGE_EXTS = ['.png', '.jpg', '.jpeg', '.webp', '.avif']
+const VIDEO_EXTS = ['.mp4', '.webm', '.mov', '.m4v']
+const EXTS = [...VIDEO_EXTS, ...IMAGE_EXTS]   // video wins when both exist
+
+const MIME = {
+  '.png':'image/png', '.jpg':'image/jpeg', '.jpeg':'image/jpeg', '.webp':'image/webp',
+  '.avif':'image/avif', '.mp4':'video/mp4', '.m4v':'video/mp4', '.webm':'video/webm',
+  '.mov':'video/quicktime'
+}
 
 const artworkDir = () => path.join(app.getPath('userData'), 'artwork')
 
 function resolveArtwork (name) {
   if (!SLOTS.includes(name)) return null
-  const dir = artworkDir()
-  for (const ext of EXTS) {
-    const p = path.join(dir, name + ext)
-    if (fs.existsSync(p)) return p
-  }
-  // A local checkout may keep its own artwork in assets/img (git-ignored).
-  for (const ext of EXTS) {
-    const p = path.join(ASSETS, 'img', name + ext)
-    if (fs.existsSync(p)) return p
+  for (const dir of [artworkDir(), path.join(ASSETS, 'img')]) {
+    for (const ext of EXTS) {
+      const p = path.join(dir, name + ext)
+      if (fs.existsSync(p)) return p
+    }
   }
   return null
+}
+
+const kindOf = file => (VIDEO_EXTS.includes(path.extname(file).toLowerCase()) ? 'video' : 'image')
+
+function artworkKinds () {
+  const out = {}
+  for (const slot of SLOTS) {
+    const file = resolveArtwork(slot)
+    out[slot] = file ? kindOf(file) : null
+  }
+  return out
 }
 
 const README = `GRAND THEFT AUTO VI - MAIN MENU MOCKUP
 =======================================
 
-Drop your own images into this folder to fill the menu.
-Accepted formats: .png .jpg .jpeg .webp .avif
+Drop your own media into this folder to fill the menu, or just drag files
+straight onto the app window.
 
-  new-game.jpg      big tile, top left
-  continue.jpg      big tile, top middle  (also the loading screen backdrop)
-  settings.jpg      tall tile on the right
-  collectibles.jpg  small tile, bottom left
-  progress.jpg      small tile, bottom middle
-  vi-logo.png       optional logo, top right - needs a transparent background
+Images: .png .jpg .jpeg .webp .avif
+Video:  .mp4 .webm .mov .m4v   (played muted on a loop; wins over an image
+                                of the same name)
 
-Anything 16:9 and roughly 1920x1080 or larger looks best.
-Restart the app after adding files.
+  new-game      big tile, top left
+  continue      big tile, top middle  (also the loading screen backdrop)
+  settings      tall tile on the right
+  collectibles  small tile, bottom left
+  progress      small tile, bottom middle
+  vi-logo       optional logo, top right - needs a transparent background
+
+Anything 16:9 and roughly 1920x1080 or larger looks best. Keep clips short;
+they loop.
+
+Two optional settings files can sit in here as well:
+
+  framing.json   per-tile crop, e.g. {"continue": {"op": "6% 50%", "zoom": 1.01}}
+  content.json   your own gamertag, mission name and percentages
+
+See the project README for what goes in them.
 
 No artwork ships with this app. Whatever you put here is your own choice
 and your own responsibility.
@@ -62,19 +88,16 @@ function ensureArtworkFolder () {
   try {
     fs.mkdirSync(dir, { recursive: true })
     const readme = path.join(dir, 'READ ME - how to add artwork.txt')
-    if (!fs.existsSync(readme)) fs.writeFileSync(readme, README)
+    fs.writeFileSync(readme, README)
   } catch { /* a read-only home directory just means placeholders */ }
   return dir
 }
 
 const haveArtwork = () => SLOTS.some(s => s !== 'vi-logo' && resolveArtwork(s))
 
-/* Per-tile crop framing, so a picture that does not match the reference shot
-   can be nudged instead of being cropped to an edge. */
-function readFraming () {
+function readJson (name) {
   try {
-    const raw = fs.readFileSync(path.join(artworkDir(), 'framing.json'), 'utf8')
-    const parsed = JSON.parse(raw)
+    const parsed = JSON.parse(fs.readFileSync(path.join(artworkDir(), name), 'utf8'))
     return parsed && typeof parsed === 'object' ? parsed : {}
   } catch { return {} }
 }
@@ -84,7 +107,7 @@ const slugToSlot = name => {
   return SLOTS.includes(stem) ? stem : null
 }
 
-/* Copies dropped pictures into the artwork folder. A file already named after a
+/* Copies dropped media into the artwork folder. A file already named after a
    slot goes there; anything else fills the tile the user had highlighted. */
 function importArtwork (files, fallbackSlot) {
   const dir = ensureArtworkFolder()
@@ -110,6 +133,34 @@ function importArtwork (files, fallbackSlot) {
     } catch { /* skip anything unreadable */ }
   }
   return written
+}
+
+/* Video needs byte ranges; without them playback stalls or refuses to start. */
+function serveFile (file, rangeHeader) {
+  const size = fs.statSync(file).size
+  const type = MIME[path.extname(file).toLowerCase()] || 'application/octet-stream'
+  const m = rangeHeader && /bytes=(\d*)-(\d*)/.exec(rangeHeader)
+
+  if (m) {
+    let start = m[1] ? parseInt(m[1], 10) : 0
+    let end = m[2] ? parseInt(m[2], 10) : size - 1
+    if (Number.isNaN(start) || start < 0) start = 0
+    if (Number.isNaN(end) || end >= size) end = size - 1
+    if (start > end) return new Response(null, { status: 416, headers: { 'Content-Range': `bytes */${size}` } })
+    return new Response(Readable.toWeb(fs.createReadStream(file, { start, end })), {
+      status: 206,
+      headers: {
+        'Content-Type': type,
+        'Content-Length': String(end - start + 1),
+        'Content-Range': `bytes ${start}-${end}/${size}`,
+        'Accept-Ranges': 'bytes'
+      }
+    })
+  }
+
+  return new Response(Readable.toWeb(fs.createReadStream(file)), {
+    headers: { 'Content-Type': type, 'Content-Length': String(size), 'Accept-Ranges': 'bytes' }
+  })
 }
 
 protocol.registerSchemesAsPrivileged([
@@ -209,15 +260,16 @@ function createWindow () {
 
 app.whenReady().then(() => {
   protocol.handle('art', async (req) => {
-    const name = new URL(req.url).hostname
-    const file = resolveArtwork(name)
+    const file = resolveArtwork(new URL(req.url).hostname)
     if (!file) return new Response(null, { status: 404 })
-    return net.fetch(pathToFileURL(file).toString())
+    try { return serveFile(file, req.headers.get('range')) }
+    catch { return new Response(null, { status: 500 }) }
   })
 
   ipcMain.handle('artwork:open', () => shell.openPath(ensureArtworkFolder()))
-  ipcMain.handle('artwork:status', () => ({ dir: artworkDir(), ready: haveArtwork() }))
-  ipcMain.handle('artwork:framing', () => readFraming())
+  ipcMain.handle('artwork:status', () => ({ dir: artworkDir(), ready: haveArtwork(), kinds: artworkKinds() }))
+  ipcMain.handle('artwork:framing', () => readJson('framing.json'))
+  ipcMain.handle('artwork:content', () => readJson('content.json'))
   ipcMain.handle('artwork:import', (_e, files, fallbackSlot) => importArtwork(files, fallbackSlot))
 
   buildMenu()
